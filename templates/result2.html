@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星盘分析结果</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        
+        .section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .planet-symbol {
+            font-size: 1.2em;
+            margin-right: 5px;
+        }
+        
+        .aspect-conjunction {
+            background-color: #e8f4f8;
+        }
+        
+        .aspect-sextile {
+            background-color: #e8f8f0;
+        }
+        
+        .aspect-square {
+            background-color: #f8e8e8;
+        }
+        
+        .aspect-trine {
+            background-color: #f8f4e8;
+        }
+        
+        .aspect-opposition {
+            background-color: #f0e8f8;
+        }
+        
+        .event-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .event-list li {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #3498db;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .error {
+            color: #e74c3c;
+            padding: 15px;
+            background-color: #fdecea;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-container {
+            margin-bottom: 20px;
+        }
+        
+        .tab-button {
+            padding: 10px 20px;
+            background-color: #f2f2f2;
+            border: none;
+            cursor: pointer;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+        }
+        
+        .tab-button.active {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="result-container">
+        <h1>星盘分析结果</h1>
+        
+        <div id="loading-indicator" class="loading">
+            <p>正在计算星盘数据，请稍候...</p>
+        </div>
+        
+        <div id="error-container" class="error" style="display: none;"></div>
+        
+        <div id="result-content" style="display: none;">
+            <div class="tab-container">
+                <button class="tab-button active" onclick="switchTab('natal')">本命星盘</button>
+                <button class="tab-button" onclick="switchTab('transit')">行运星盘</button>
+                <button class="tab-button" onclick="switchTab('aspects')">相位关系</button>
+                <button class="tab-button" onclick="switchTab('events')">事件解读</button>
+            </div>
+            
+            <!-- 本命星盘 -->
+            <div id="natal-tab" class="tab-content active">
+                <div class="section">
+                    <h2>本命星盘</h2>
+                    <div id="natal-chart-container">
+                        <table class="chart-table">
+                            <thead>
+                                <tr>
+                                    <th>行星</th>
+                                    <th>星座</th>
+                                    <th>宫位</th>
+                                    <th>经度</th>
+                                </tr>
+                            </thead>
+                            <tbody id="natal-planets">
+                                <!-- 通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <h3>宫位信息</h3>
+                    <div id="natal-houses-container">
+                        <table class="houses-table">
+                            <thead>
+                                <tr>
+                                    <th>宫位</th>
+                                    <th>起始点</th>
+                                    <th>星座</th>
+                                </tr>
+                            </thead>
+                            <tbody id="natal-houses">
+                                <!-- 通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 行运星盘 -->
+            <div id="transit-tab" class="tab-content">
+                <div class="section">
+                    <h2>行运星盘</h2>
+                    <div id="transit-chart-container">
+                        <table class="chart-table">
+                            <thead>
+                                <tr>
+                                    <th>行星</th>
+                                    <th>星座</th>
+                                    <th>宫位</th>
+                                    <th>经度</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transit-planets">
+                                <!-- 通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 相位关系 -->
+            <div id="aspects-tab" class="tab-content">
+                <div class="section">
+                    <h2>行星相位关系</h2>
+                    <p>以下是行运行星与本命行星之间的主要相位关系（容许度范围内的相位）：</p>
+                    <div id="aspects-container">
+                        <table class="aspect-table">
+                            <thead>
+                                <tr>
+                                    <th>本命行星</th>
+                                    <th>行运行星</th>
+                                    <th>相位</th>
+                                    <th>角度差</th>
+                                    <th>容许度</th>
+                                    <th>本命星座</th>
+                                    <th>行运星座</th>
+                                </tr>
+                            </thead>
+                            <tbody id="aspect-list">
+                                <!-- 通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 事件解读 -->
+            <div id="events-tab" class="tab-content">
+                <div class="section">
+                    <h2>事件解读</h2>
+                    <div id="events-container">
+                        <div id="sun-sign-events">
+                            <h3>太阳星座相关事件</h3>
+                            <ul class="event-list" id="sun-events">
+                                <!-- 通过JavaScript动态填充 -->
+                            </ul>
+                        </div>
+                        
+                        <div id="asc-sign-events">
+                            <h3>上升星座相关事件</h3>
+                            <ul class="event-list" id="asc-events">
+                                <!-- 通过JavaScript动态填充 -->
+                            </ul>
+                        </div>
+                        
+                        <div id="aspect-events">
+                            <h3>相位相关事件</h3>
+                            <div id="aspect-events-list">
+                                <!-- 通过JavaScript动态填充 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 切换标签页
+        function switchTab(tabName) {
+            // 隐藏所有标签内容
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 取消所有标签按钮的active状态
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // 显示选中的标签内容
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // 设置选中的标签按钮为active
+            event.currentTarget.classList.add('active');
+        }
+        
+        // 渲染本命星盘
+        function renderNatalChart(natalChart) {
+            const planetsContainer = document.getElementById('natal-planets');
+            const housesContainer = document.getElementById('natal-houses');
+            
+            // 清空容器
+            planetsContainer.innerHTML = '';
+            housesContainer.innerHTML = '';
+            
+            // 渲染行星数据
+            for (const [planet, data] of Object.entries(natalChart.planets)) {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>
+                        <span class="planet-symbol">${data.symbol || ''}</span>
+                        ${planets_zh[planet] || planet}
+                    </td>
+                    <td>
+                        <span class="sign-symbol">${sign_symbols[data.sign] || ''}</span>
+                        ${signs_zh[data.sign] || data.sign}
+                    </td>
+                    <td>${houses_zh[data.house] || data.house}</td>
+                    <td>${data.longitude.toFixed(2)}°</td>
+                `;
+                
+                planetsContainer.appendChild(row);
+            }
+            
+            // 渲染宫位数据
+            for (let i = 0; i < natalChart.cusps.length; i++) {
+                const cusp = natalChart.cusps[i];
+                const sign = getSignFromLongitude(cusp);
+                
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${houses_zh[`${i+1}st`] || `${i+1}宫`}</td>
+                    <td>${cusp.toFixed(2)}°</td>
+                    <td>
+                        <span class="sign-symbol">${sign_symbols[sign] || ''}</span>
+                        ${signs_zh[sign] || sign}
+                    </td>
+                `;
+                
+                housesContainer.appendChild(row);
+            }
+        }
+        
+        // 渲染行运星盘
+        function renderTransitChart(transitChart) {
+            const container = document.getElementById('transit-planets');
+            container.innerHTML = '';
+            
+            for (const [planet, data] of Object.entries(transitChart)) {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>
+                        <span class="planet-symbol">${data.symbol || ''}</span>
+                        ${planets_zh[planet] || planet}
+                    </td>
+                    <td>
+                        <span class="sign-symbol">${sign_symbols[data.sign] || ''}</span>
+                        ${signs_zh[data.sign] || data.sign}
+                    </td>
+                    <td>${houses_zh[data.house] || data.house}</td>
+                    <td>${data.longitude.toFixed(2)}°</td>
+                `;
+                
+                container.appendChild(row);
+            }
+        }
+        
+        // 渲染相位关系
+        function renderAspects(aspects) {
+            const container = document.getElementById('aspect-list');
+            container.innerHTML = '';
+            
+            if (!aspects || aspects.length === 0) {
+                container.innerHTML = '<tr><td colspan="7" style="text-align: center;">没有检测到显著的相位关系</td></tr>';
+                return;
+            }
+            
+            aspects.forEach(aspect => {
+                const row = document.createElement('tr');
+                row.className = `aspect-${aspect.aspect_type}`;
+                
+                row.innerHTML = `
+                    <td>
+                        <span class="planet-symbol">${planet_symbols[aspect.natal_planet] || ''}</span>
+                        ${planets_zh[aspect.natal_planet] || aspect.natal_planet}
+                    </td>
+                    <td>
+                        <span class="planet-symbol">${planet_symbols[aspect.transit_planet] || ''}</span>
+                        ${planets_zh[aspect.transit_planet] || aspect.transit_planet}
+                    </td>
+                    <td>${aspect.aspect_name}</td>
+                    <td>${aspect.actual_degree.toFixed(2)}°</td>
+                    <td>±${aspect.max_orb.toFixed(2)}°</td>
+                    <td>
+                        <span class="sign-symbol">${sign_symbols[aspect.natal_sign] || ''}</span>
+                        ${signs_zh[aspect.natal_sign] || aspect.natal_sign}
+                    </td>
+                    <td>
+                        <span class="sign-symbol">${sign_symbols[aspect.transit_sign] || ''}</span>
+                        ${signs_zh[aspect.transit_sign] || aspect.transit_sign}
+                    </td>
+                `;
+                
+                container.appendChild(row);
+            });
+        }
+        
+        // 渲染事件解读
+        function renderEvents(events) {
+            const sunEventsContainer = document.getElementById('sun-events');
+            const ascEventsContainer = document.getElementById('asc-events');
+            const aspectEventsContainer = document.getElementById('aspect-events-list');
+            
+            // 清空容器
+            sunEventsContainer.innerHTML = '';
+            ascEventsContainer.innerHTML = '';
+            aspectEventsContainer.innerHTML = '';
+            
+            // 渲染太阳星座事件
+            if (events.sun_sign.events && events.sun_sign.events.length > 0) {
+                events.sun_sign.events.forEach(event => {
+                    const li = document.createElement('li');
+                    li.textContent = event;
+                    sunEventsContainer.appendChild(li);
+                });
+            } else {
+                sunEventsContainer.innerHTML = '<li>没有找到太阳星座相关事件</li>';
+            }
+            
+            // 渲染上升星座事件
+            if (events.asc_sign.events && events.asc_sign.events.length > 0) {
+                events.asc_sign.events.forEach(event => {
+                    const li = document.createElement('li');
+                    li.textContent = event;
+                    ascEventsContainer.appendChild(li);
+                });
+            } else {
+                ascEventsContainer.innerHTML = '<li>没有找到上升星座相关事件</li>';
+            }
+            
+            // 渲染相位相关事件
+            if (events.aspect_events && events.aspect_events.length > 0) {
+                events.aspect_events.forEach(eventGroup => {
+                    const section = document.createElement('div');
+                    section.className = 'event-group';
+                    
+                    const heading = document.createElement('h4');
+                    heading.textContent = eventGroup.query;
+                    section.appendChild(heading);
+                    
+                    const ul = document.createElement('ul');
+                    ul.className = 'event-list';
+                    
+                    if (eventGroup.events && eventGroup.events.length > 0) {
+                        eventGroup.events.forEach(event => {
+                            const li = document.createElement('li');
+                            li.textContent = event;
+                            ul.appendChild(li);
+                        });
+                    } else {
+                        const li = document.createElement('li');
+                        li.textContent = '没有找到相关事件';
+                        ul.appendChild(li);
+                    }
+                    
+                    section.appendChild(ul);
+                    aspectEventsContainer.appendChild(section);
+                });
+            } else {
+                aspectEventsContainer.innerHTML = '<p>没有找到相位相关事件</p>';
+            }
+        }
+        
+        // 根据经度获取星座
+        function getSignFromLongitude(longitude) {
+            const signs = [
+                'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+                'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+            ];
+            const normalized = longitude % 360;
+            const signIndex = Math.floor(normalized / 30);
+            return signs[signIndex];
+        }
+        
+        // 显示结果
+        function displayResults(result) {
+            // 隐藏加载指示器
+            document.getElementById('loading-indicator').style.display = 'none';
+            
+            // 显示结果内容
+            document.getElementById('result-content').style.display = 'block';
+            
+            // 渲染各个部分
+            renderNatalChart(result.natal_chart);
+            renderTransitChart(result.transit_chart);
+            renderAspects(result.aspects);
+            renderEvents(result.events);
+        }
+        
+        // 显示错误
+        function displayError(error) {
+            // 隐藏加载指示器
+            document.getElementById('loading-indicator').style.display = 'none';
+            
+            // 显示错误信息
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.style.display = 'block';
+            errorContainer.innerHTML = `
+      <div class="alert alert-danger">
+        <strong>错误:</strong> ${error.message || '未知错误'}
+      </div>
+      <button id="back-button" class="btn btn-primary">返回重新提交</button>
+    ;
+        // 添加返回按钮事件
+    document.getElementById('back-button').addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+  }
+        // 初始化页面   
+document.addEventListener('DOMContentLoaded', function() {
+    const resultData = JSON.parse(sessionStorage.getItem('astrologyResult'));
+    
+  if (resultData) {
+            // 渲染结果
+        renderNatalChart(resultData.natal_chart);
+        renderTransitChart(resultData.transit_chart);
+        renderAspects(resultData.aspects);
+        renderEvents(resultData.events);
+    //} else {
+        // 没有结果数据，重定向回首页
+       // window.location.href = 'index.html';
+    }
+});
+
+</script>
+        
+        // 数据映射（与后端一致）
+        const planets_zh = {
+            'sun': '太阳',
+            'moon': '月亮',
+            'mercury': '水星',
+            'venus': '金星',
+            'mars': '火星',
+            'jupiter': '木星',
+            'saturn': '土星',
+            'uranus': '天王星',
+            'neptune': '海王星',
+            'pluto': '冥王星',
+            'ascendant': '上升',
+            'midheaven': '天顶'
+        };
+        
+        const signs_zh = {
+            'Aries': '白羊座',
+            'Taurus': '金牛座',
+            'Gemini': '双子座',
+            'Cancer': '巨蟹座',
+            'Leo': '狮子座',
+            'Virgo': '处女座',
+            'Libra': '天秤座',
+            'Scorpio': '天蝎座',
+            'Sagittarius': '射手座',
+            'Capricorn': '摩羯座',
+            'Aquarius': '水瓶座',
+            'Pisces': '双鱼座'
+        };
+        
+        const houses_zh = {
+            '1st': '第一宫',
+            '2nd': '第二宫',
+            '3rd': '第三宫',
+            '4th': '第四宫',
+            '5th': '第五宫',
+            '6th': '第六宫',
+            '7th': '第七宫',
+            '8th': '第八宫',
+            '9th': '第九宫',
+            '10th': '第十宫',
+            '11th': '第十一宫',
+            '12th': '第十二宫'
+        };
+        
+        const planet_symbols = {
+            'sun': '☉',
+            'moon': '☽',
+            'mercury': '☿',
+            'venus': '♀',
+            'mars': '♂',
+            'jupiter': '♃',
+            'saturn': '♄',
+            'uranus': '♅',
+            'neptune': '♆',
+            'pluto': '♇',
+            'ascendant': 'Asc',
+            'midheaven': 'MC'
+        };
+        
+        const sign_symbols = {
+            'Aries': '♈',
+            'Taurus': '♉',
+            'Gemini': '♊',
+            'Cancer': '♋',
+            'Leo': '♌',
+            'Virgo': '♍',
+            'Libra': '♎',
+            'Scorpio': '♏',
+            'Sagittarius': '♐',
+            'Capricorn': '♑',
+            'Aquarius': '♒',
+            'Pisces': '♓'
+        };
+    </script>
+</body>
+</html>

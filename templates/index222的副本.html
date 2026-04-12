@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星座预测系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        select, input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .birth-info {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        .birth-info h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .button-group {
+            text-align: center;
+            margin-top: 30px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .reset-btn {
+            background-color: #95a5a6;
+        }
+        .reset-btn:hover {
+            background-color: #7f8c8d;
+        }
+        .required {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>星座预测系统</h1>
+        <form id="astrologyForm">
+            <div class="form-group">
+                <label for="name">姓名 <span class="required">*</span></label>
+                <input type="text" id="name" name="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="gender">性别 <span class="required">*</span></label>
+                <select id="gender" name="gender" required>
+                    <option value="">请选择性别</option>
+                    <option value="男">男</option>
+                    <option value="女">女</option>
+                </select>
+            </div>
+
+            <div class="birth-info">
+                <h3>出生地信息</h3>
+                <div class="form-group">
+                    <label for="province">省份 <span class="required">*</span></label>
+                    <select id="province" name="province" required onchange="updateCities()">
+                        <option value="">请选择省份</option>
+                        <option value="Beijing">北京</option>
+                        <option value="TianJin">天津</option>
+                        <option value="HeiLongJiang">黑龙江</option>
+                        <option value="JiLin">吉林</option>
+                        <option value="LiaoNing">辽宁</option>
+                        <option value="HeBei">河北</option>
+                        <option value="ShanDong">山东</option>
+                        <option value="ShanXi">山西</option>
+                        <option value="JiangSu">江苏</option>
+                        <option value="AnHui">安徽</option>
+                        <option value="ZheJiang">浙江</option>
+                        <option value="FuJian">福建</option>
+                        <option value="JiangXi">江西</option>
+                        <option value="ShangHai">上海</option>
+                        <option value="GuangDong">广东</option>
+                        <option value="HaiNan">海南</option>
+                        <option value="GuangXi">广西</option>
+                        <option value="GuiZhou">贵州</option>
+                        <option value="YunNan">云南</option>
+                        <option value="SiChuan">四川</option>
+                        <option value="ChongQing">重庆</option>
+                        <option value="ShanXi1">陕西</option>
+                        <option value="GanSu">甘肃</option>
+                        <option value="QingHai">青海</option>
+                        <option value="NingXia">宁夏</option>
+                        <option value="XiZang">西藏</option>
+                        <option value="XinJiang">新疆</option>
+                        <option value="NeiMengGu">内蒙古</option>
+                        <option value="HongKong">香港</option>
+                        <option value="AoMen">澳门</option>
+                        <option value="TaiWan">台湾</option>
+                    
+            </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="city">城市 <span class="required">*</span></label>
+                    <select id="city" name="city" required disabled>
+                    <option value="">请先选择省份</option>
+                </select>
+            </div>
+           </div>
+
+            <div class="form-group">
+                <label for="birthDate">出生日期 <span class="required">*</span></label>
+                <input type="date" id="birthDate" name="birthDate" required>
+            </div>
+
+            <div class="form-group">
+                <label for="birthTime">出生时间 <span class="required">*</span></label>
+                <input type="time" id="birthTime" name="birthTime" required>
+            </div>
+
+            <div class="form-group">
+                <label for="transitDate">查询日期 <span class="required">*</span></label>
+                <input type="date" id="transitDate" name="transitDate" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="transitTime">查询时间 <span class="required">*</span></label>
+                <input type="time" id="transitTime" name="transitTime" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">备注</label>
+                <textarea id="description" name="description" rows="3" placeholder="请输入其他相关信息（可选）"></textarea>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn">提交</button>
+                <button type="button" class="btn reset-btn" onclick="resetForm()">重置</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // 省份对应的城市数据
+        const cityData = {
+            'Beijing': [
+                { name: '北京', coordinates: '116:28E,39:54N' } ,
+                { name: '平谷', coordinates: '117:06E,40:08N' },
+                { name: '密云', coordinates: '116:51E,40:22N' },
+                { name: '顺义', coordinates: '116:39E,40:08N' },
+                { name: '通县', coordinates: '116:40E,39:55N' },
+                { name: '怀柔', coordinates: '116:37E,40:19N' },
+                { name: '大兴', coordinates: '116:20E,39:44N' },
+                { name: '房山', coordinates: '115:59E,39:43N' },
+                { name: '昌平', coordinates: '116:12E,40:13N' },
+                { name: '延庆', coordinates: '115:58E,40:28N' }
+         ],
+            'TianJin': [
+                { name: '天津', coordinates: '117:10E,39:08N' },
+                { name: '宁河', coordinates: '117:50E,39:20N' },
+                { name: '静海', coordinates: '116:55E,38:56N' },    
+                { name: '蓟县', coordinates: '117:24E,40:03N' },
+                { name: '宝坻', coordinates: '117:18E,39:45N' },
+                { name: '武清', coordinates: '117:03E,39:24N' }
+            ],
+            
+'TaiWan': [
+    { name: '台北市', coordinates: '121:30E,25:03N' },
+    { name: '新北市', coordinates: '121:29E,25:00N' },
+    { name: '高雄市', coordinates: '120:17E,22:38N' },
+    { name: '基隆市', coordinates: '121:44E,25:08N' },
+    { name: '桃园市', coordinates: '121:18E,24:59N' },
+    { name: '新竹市', coordinates: '120:58E,24:48N' },
+    { name: '台中市', coordinates: '120:40E,24:09N' },
+    { name: '嘉义市', coordinates: '120:27E,23:29N' },
+    { name: '台南市', coordinates: '120:12E,23:00N' },
+    { name: '宜兰县', coordinates: '121:45E,24:46N' },
+    { name: '新竹县', coordinates: '120:59E,24:46N' },
+    { name: '苗栗县', coordinates: '120:49E,24:33N' },
+    { name: '彰化县', coordinates: '120:32E,24:04N' },
+    { name: '南投县', coordinates: '120:41E,23:54N' },
+    { name: '云林县', coordinates: '120:32E,23:42N' },
+    { name: '嘉义县', coordinates: '120:27E,23:29N' },
+    { name: '屏东县', coordinates: '120:29E,22:39N' },
+    { name: '花莲县', coordinates: '121:36E,23:59N' },
+    { name: '台东县', coordinates: '121:09E,22:45N' },
+    { name: '澎湖县', coordinates: '119:33E,23:34N' },
+    { name: '绿岛', coordinates: '121:28E,22:35N' },
+    { name: '兰屿', coordinates: '121:33E,22:25N' }
+],
+'HongKong': [
+    { name: '香港', coordinates: '114:06E,22:12N' },
+    { name: '九龙', coordinates: '114:11E,22:19N' },
+    { name: '新界', coordinates: '114:10E,22:25N' }
+],
+'Macau': [  // 建议使用 'Macau' 替代 'AoMen' 以保持一致性和可读性
+    { name: '澳门', coordinates: '113:33E,22:11N' }
+]
+ };
+        // 获取DOM元素
+        const provinceSelect = document.getElementById('province');
+        const citySelect = document.getElementById('city');
+        const form = document.getElementById('astrologyForm');
+        
+        // 更新城市列表的函数
+    function updateCities() {
+        const selectedProvince = provinceSelect.value;
+        
+        // 清空城市选项
+        citySelect.innerHTML = '<option value="">请选择城市</option>';
+        citySelect.disabled = true;
+        
+        if (selectedProvince && cityData[selectedProvince]) {
+            // 有对应的城市数据
+            cityData[selectedProvince].forEach(city => {
+                const option = document.createElement('option');
+                option.value = city.coordinates; // 存储经纬度作为值
+                option.textContent = city.name;
+                option.dataset.coordinates = city.coordinates; // 存储经纬度
+                citySelect.appendChild(option);
+            });
+            citySelect.disabled = false;
+        }
+    }
+    
+    // 省份选择变化事件
+    if (provinceSelect && citySelect) {
+        provinceSelect.addEventListener('change', updateCities);
+    }
+
+    // 表单提交事件
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 获取选中的城市坐标
+            const selectedCityOption = citySelect.options[citySelect.selectedIndex];
+            const coordinates = selectedCityOption.dataset.coordinates;
+            
+            const formData = new FormData(this);
+            const data = {
+                name: formData.get('name'),
+                gender: formData.get('gender'),
+                province: formData.get('province'),
+                city: formData.get('city'),
+                coordinates: coordinates,
+                birthDate: formData.get('birthDate'),
+                birthTime: formData.get('birthTime'),
+                transitDate: formData.get('transitDate'),
+                transitTime: formData.get('transitTime'),
+                description: formData.get('description')
+            };
+            
+            // 验证必填项
+            if (!data.name || !data.gender || !data.province || !data.city || 
+                !data.birthDate || !data.birthTime || 
+                !data.transitDate || !data.transitTime) {
+                alert('请填写所有必填项！');
+                return;
+            }
+            
+            // 这里可以添加提交数据的逻辑
+            console.log('提交的数据:', data);
+            alert('信息提交成功！\n' + 
+                  '姓名: ' + data.name + '\n' +
+                  '性别: ' + data.gender + '\n' +
+                  '省份: ' + data.province + '\n' +
+                  '城市: ' + data.city + '\n' +
+                  '经纬度: ' + data.coordinates + '\n' +
+                  '出生日期: ' + data.birthDate + '\n' +
+                  '出生时间: ' + data.birthTime + '\n' +
+                  '查询日期: ' + data.transitDate + '\n' +
+                  '查询时间: ' + data.transitTime);
+            
+            // 实际应用中，这里应该发送数据到后端
+            fetch('/calculate',  {
+              method: 'POST',
+     headers: {
+            'Content-Type': 'application/json'
+                },
+                 body: JSON.stringify(data)
+             })
+            .then(response => response.json())
+             .then(result => {
+                 console.log('Success:', result);
+             })
+             .catch(error => {
+                 console.error('Error:', error);
+             });
+        });
+    }
+
+    // 重置表单函数
+    function resetForm() {
+        if (form) {
+            form.reset();
+        }
+        if (citySelect) {
+            citySelect.innerHTML = '<option value="">请选择城市</option>';
+            citySelect.disabled = true;
+        }
+    }
+
+    // 页面加载时确保城市选择框处于正确状态
+    document.addEventListener('DOMContentLoaded', function() {
+        if (citySelect) {
+            citySelect.innerHTML = '<option value="">请选择城市</option>';
+            citySelect.disabled = true;
+        }
+    });
+</script>
+</body>
+</html>

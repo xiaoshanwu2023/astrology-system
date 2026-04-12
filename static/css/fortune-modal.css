@@ -1,0 +1,602 @@
+/**
+ * 详细运势解读模态框样式
+ * Fortune Modal Styles - Cosmic Theme
+ */
+
+/* ===== 按钮样式 ===== */
+.fortune-action-container {
+  text-align: center;
+  margin: 30px 0;
+  padding: 20px;
+}
+
+.btn-fortune {
+  position: relative;
+  padding: 15px 40px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+  border: none;
+  border-radius: 50px;
+  color: #0a0e27;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+}
+
+.btn-fortune:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(255, 215, 0, 0.5);
+}
+
+.btn-fortune:active {
+  transform: translateY(-1px);
+}
+
+.btn-icon {
+  font-size: 1.3rem;
+  margin-right: 8px;
+}
+
+.btn-glow {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: btnShine 3s infinite;
+}
+
+@keyframes btnShine {
+  0% { left: -100%; }
+  50%, 100% { left: 100%; }
+}
+
+.fortune-hint {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+/* ===== 模态框基础样式 ===== */
+.fortune-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.fortune-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.fortune-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+}
+
+.fortune-modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 700px;
+  max-height: 85vh;
+  background: linear-gradient(145deg, rgba(18, 26, 61, 0.95) 0%, rgba(10, 14, 39, 0.98) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 20px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.1);
+  overflow: hidden;
+  transform: scale(0.9) translateY(20px);
+  transition: transform 0.3s ease;
+}
+
+.fortune-modal.active .fortune-modal-content.animate-in {
+  transform: scale(1) translateY(0);
+}
+
+/* 顶部金色光条 */
+.fortune-modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ffd700, #ff8c00, #ffd700, transparent);
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ===== 关闭按钮 ===== */
+.fortune-modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.fortune-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffd700;
+  transform: rotate(90deg);
+}
+
+/* ===== 头部样式 ===== */
+.fortune-modal-header {
+  text-align: center;
+  padding: 30px 20px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fortune-icon {
+  font-size: 3rem;
+  margin-bottom: 10px;
+  animation: starPulse 2s ease-in-out infinite;
+}
+
+@keyframes starPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.fortune-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.8rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 10px 0;
+}
+
+.fortune-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+/* ===== 加载状态 ===== */
+.fortune-loading {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.cosmic-spinner {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 30px;
+}
+
+.spinner-ring {
+  position: absolute;
+  border: 3px solid transparent;
+  border-top-color: #ffd700;
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite;
+}
+
+.spinner-ring:nth-child(1) {
+  width: 80px;
+  height: 80px;
+  top: 0;
+  left: 0;
+}
+
+.spinner-ring:nth-child(2) {
+  width: 60px;
+  height: 60px;
+  top: 10px;
+  left: 10px;
+  animation-duration: 1.2s;
+  border-top-color: #ff8c00;
+}
+
+.spinner-ring:nth-child(3) {
+  width: 40px;
+  height: 40px;
+  top: 20px;
+  left: 20px;
+  animation-duration: 0.9s;
+  border-top-color: #b87333;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 1.2rem;
+  color: #ffd700;
+  margin-bottom: 10px;
+}
+
+.loading-subtext {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===== 内容区域 ===== */
+.fortune-content {
+  padding: 20px;
+  max-height: calc(85vh - 120px);
+  overflow-y: auto;
+}
+
+/* 自定义滚动条 */
+.fortune-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.fortune-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.fortune-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.3);
+  border-radius: 4px;
+}
+
+.fortune-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 215, 0, 0.5);
+}
+
+/* 头部信息 */
+.fortune-header-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sign-badge,
+.date-badge,
+.sentiment-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  min-width: 100px;
+}
+
+.sign-icon {
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+}
+
+.sign-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffd700;
+}
+
+.date-label,
+.sentiment-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+
+.date-value {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sentiment-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.sentiment-positive {
+  background: rgba(0, 255, 100, 0.2);
+  color: #00ff64;
+}
+
+.sentiment-积极 {
+  background: rgba(0, 255, 100, 0.2);
+  color: #00ff64;
+}
+
+.sentiment-需要关注 {
+  background: rgba(255, 200, 0, 0.2);
+  color: #ffc800;
+}
+
+/* 运势正文 */
+.fortune-reading-text {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.fortune-reading-text p {
+  margin-bottom: 15px;
+}
+
+.fortune-reading-text strong {
+  color: #ffd700;
+}
+
+/* ===== 详情折叠面板 ===== */
+.fortune-details-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.details-toggle {
+  width: 100%;
+  padding: 12px 20px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  color: #ffd700;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.details-toggle:hover {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.toggle-icon {
+  transition: transform 0.3s ease;
+}
+
+.details-toggle.expanded .toggle-icon {
+  transform: rotate(180deg);
+}
+
+.details-content {
+  margin-top: 15px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.details-group {
+  margin-bottom: 20px;
+}
+
+.details-group h4 {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 12px;
+  padding-left: 10px;
+  border-left: 3px solid #ffd700;
+}
+
+.detail-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 10px;
+  transition: all 0.3s ease;
+}
+
+.detail-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(5px);
+}
+
+.detail-card.positive {
+  border-left: 3px solid #00ff64;
+}
+
+.detail-card.challenge {
+  border-left: 3px solid #ff6b6b;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.detail-title {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.detail-icon {
+  font-size: 1.2rem;
+}
+
+.detail-content {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.detail-meta {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ===== 底部信息 ===== */
+.fortune-footer {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.fortune-source {
+  font-size: 0.85rem;
+  color: rgba(255, 215, 0, 0.7);
+  margin-bottom: 8px;
+}
+
+.fortune-disclaimer {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+/* ===== 错误状态 ===== */
+.fortune-error {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.fortune-error h3 {
+  color: #ff6b6b;
+  margin-bottom: 10px;
+}
+
+.fortune-error p {
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 20px;
+}
+
+.btn-retry {
+  padding: 12px 30px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+  border: none;
+  border-radius: 25px;
+  color: #0a0e27;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-retry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+}
+
+/* ===== 响应式设计 ===== */
+@media (max-width: 768px) {
+  .fortune-modal-content {
+    width: 95%;
+    max-height: 90vh;
+    margin: 10px;
+  }
+  
+  .fortune-title {
+    font-size: 1.5rem;
+  }
+  
+  .fortune-header-info {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .sign-badge,
+  .date-badge,
+  .sentiment-badge {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 15px;
+  }
+  
+  .btn-fortune {
+    padding: 12px 30px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .fortune-modal-content {
+    border-radius: 15px;
+  }
+  
+  .fortune-modal-header {
+    padding: 20px 15px 15px;
+  }
+  
+  .fortune-content {
+    padding: 15px;
+  }
+  
+  .fortune-reading-text {
+    font-size: 0.95rem;
+  }
+}
+
+/* ===== 动画效果 ===== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fortune-content > * {
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+.fortune-content > *:nth-child(1) { animation-delay: 0.1s; }
+.fortune-content > *:nth-child(2) { animation-delay: 0.2s; }
+.fortune-content > *:nth-child(3) { animation-delay: 0.3s; }
+.fortune-content > *:nth-child(4) { animation-delay: 0.4s; }

@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>星盘查询 - 探索你的命运密码</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cosmic-theme.css') }}">
+  <style>
+    /* 首页特定样式 - 基于 cosmic-theme */
+    
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* 头部 */
+    .header {
+      text-align: center;
+      margin-bottom: 50px;
+      padding-top: 40px;
+    }
+
+    .header h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
+      letter-spacing: 3px;
+      font-family: 'Cinzel', 'Noto Serif SC', serif;
+    }
+
+    .header p {
+      font-size: 1.2rem;
+      color: #a0aec0;
+      font-weight: 400;
+      letter-spacing: 1px;
+    }
+
+    /* 表单卡片 */
+    .form-card {
+      background: linear-gradient(145deg, rgba(18, 26, 61, 0.9) 0%, rgba(10, 14, 39, 0.9) 100%);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 40px;
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .form-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #ffd700, transparent);
+      opacity: 0.5;
+    }
+
+    .form-card h2 {
+      font-size: 1.6rem;
+      margin-bottom: 30px;
+      text-align: center;
+      color: #ffd700;
+      font-family: 'Cinzel', 'Noto Serif SC', serif;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    /* 表单组 */
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 1rem;
+      color: #e2e8f0;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group label .required {
+      color: #ff6b6b;
+      margin-left: 4px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 14px 18px;
+      border: 2px solid rgba(255, 215, 0, 0.15);
+      border-radius: 12px;
+      background: rgba(10, 14, 39, 0.6);
+      color: #fff;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: all 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: rgba(255, 215, 0, 0.5);
+      background: rgba(10, 14, 39, 0.8);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+    }
+
+    .form-group select option {
+      background: #0a0e27;
+      color: #fff;
+    }
+
+    /* 日期时间行 */
+    .datetime-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .date-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .time-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    /* 地点选择行 */
+    .location-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    /* 复选框样式 */
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 14px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+      accent-color: #ffd700;
+    }
+
+    .checkbox-group label {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #a0aec0;
+      font-weight: normal;
+      cursor: pointer;
+    }
+
+    /* 提交按钮 */
+    .submit-btn {
+      width: 100%;
+      padding: 18px;
+      margin-top: 20px;
+      background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+      border: none;
+      border-radius: 30px;
+      color: #0a0e27;
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 2px;
+      box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+    }
+
+    .submit-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(255, 215, 0, 0.5);
+    }
+
+    .submit-btn:hover::before {
+      left: 100%;
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* 加载动画 */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .loading.active {
+      display: block;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 3px solid rgba(255, 215, 0, 0.2);
+      border-top-color: #ffd700;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading p {
+      color: #a0aec0;
+      font-size: 1rem;
+      letter-spacing: 1px;
+    }
+
+    /* 错误提示 */
+    .error-message {
+      display: none;
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 12px;
+      padding: 15px 20px;
+      margin-bottom: 25px;
+      color: #ff6b6b;
+      font-size: 0.95rem;
+    }
+
+    .error-message.active {
+      display: block;
+    }
+
+    /* 页脚 */
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding: 25px;
+      color: #64748b;
+      font-size: 0.9rem;
+      letter-spacing: 0.5px;
+    }
+
+    /* 响应式 */
+    @media (max-width: 600px) {
+      .header h1 {
+        font-size: 2.2rem;
+      }
+
+      .form-card {
+        padding: 25px;
+      }
+
+      .datetime-row,
+      .location-row,
+      .date-row,
+      .time-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 滚动条美化 */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(10, 14, 39, 0.5);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #ffd700, #ff8c00);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 星空背景 -->
+  <div class="stars" id="stars"></div>
+
+  <div class="container">
+    <!-- 头部 -->
+    <div class="header">
+      <h1>✨ 星盘查询</h1>
+      <p>探索你的命运密码，解读星辰的启示</p>
+    </div>
+
+    <!-- 表单卡片 -->
+    <div class="form-card">
+      <h2>🌙 输入出生信息</h2>
+
+      <!-- 错误提示 -->
+      <div class="error-message" id="errorMessage"></div>
+
+      <form id="astrologyForm">
+        <!-- 姓名（可选） -->
+        <div class="form-group">
+          <label for="name">姓名</label>
+          <input type="text" id="name" name="name" placeholder="请输入您的姓名（可选）">
+        </div>
+
+        <!-- 出生日期 -->
+        <div class="form-group">
+          <label>出生日期 <span class="required">*</span></label>
+          <div class="date-row">
+            <select id="birthYear" name="birthYear" required>
+              <option value="">年</option>
+            </select>
+            <select id="birthMonth" name="birthMonth" required>
+              <option value="">月</option>
+              <option value="1">1月</option>
+              <option value="2">2月</option>
+              <option value="3">3月</option>
+              <option value="4">4月</option>
+              <option value="5">5月</option>
+              <option value="6">6月</option>
+              <option value="7">7月</option>
+              <option value="8">8月</option>
+              <option value="9">9月</option>
+              <option value="10">10月</option>
+              <option value="11">11月</option>
+              <option value="12">12月</option>
+            </select>
+            <select id="birthDay" name="birthDay" required disabled>
+              <option value="">日</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 出生时间 -->
+        <div class="form-group">
+          <label>出生时间 <span class="required">*</span></label>
+          <div class="time-row">
+            <select id="birthHour" name="birthHour" required>
+              <option value="">时</option>
+            </select>
+            <select id="birthMinute" name="birthMinute" required>
+              <option value="">分</option>
+            </select>
+            <div class="checkbox-group">
+              <input type="checkbox" id="unknownMinute" name="unknownMinute">
+              <label for="unknownMinute">分钟不确定</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 时区选择 -->
+        <div class="form-group">
+          <label for="timezone">时区 <span class="required">*</span></label>
+          <select id="timezone" name="timezone" required>
+            <option value="8">UTC+8 北京时间 / 台北 / 香港 / 新加坡</option>
+            <option value="9">UTC+9 东京 / 首尔</option>
+            <option value="0">UTC+0 伦敦 / 里斯本</option>
+            <option value="1">UTC+1 巴黎 / 柏林 / 罗马</option>
+            <option value="-5">UTC-5 纽约 / 多伦多 / 迈阿密</option>
+            <option value="-8">UTC-8 洛杉矶 / 温哥华 / 西雅图</option>
+            <option value="10">UTC+10 悉尼 / 墨尔本</option>
+            <option value="-3">UTC-3 圣保罗 / 布宜诺斯艾利斯</option>
+            <option value="5.5">UTC+5:30 新德里 / 孟买</option>
+            <option value="3">UTC+3 莫斯科 / 伊斯坦布尔</option>
+            <option value="-7">UTC-7 丹佛 / 凤凰城</option>
+            <option value="-6">UTC-6 芝加哥 / 墨西哥城</option>
+          </select>
+        </div>
+
+        <!-- 出生地点 -->
+        <div class="form-group">
+          <label>出生地点 <span class="required">*</span></label>
+        </div>
+        <div class="location-row">
+          <div class="form-group">
+            <select id="province" name="province" required>
+              <option value="">请选择省份</option>
+              <option value="Beijing">北京</option>
+              <option value="TianJin">天津</option>
+              <option value="HeiLongJiang">黑龙江</option>
+              <option value="JiLin">吉林</option>
+              <option value="LiaoNing">辽宁</option>
+              <option value="HeBei">河北</option>
+              <option value="ShanDong">山东</option>
+              <option value="ShanXi">山西</option>
+              <option value="JiangSu">江苏</option>
+              <option value="AnHui">安徽</option>
+              <option value="ZheJiang">浙江</option>
+              <option value="FuJian">福建</option>
+              <option value="JiangXi">江西</option>
+              <option value="ShangHai">上海</option>
+              <option value="GuangDong">广东</option>
+              <option value="HaiNan">海南</option>
+              <option value="GuangXi">广西</option>
+              <option value="GuiZhou">贵州</option>
+              <option value="YunNan">云南</option>
+              <option value="SiChuan">四川</option>
+              <option value="ChongQing">重庆</option>
+              <option value="ShanXi1">陕西</option>
+              <option value="GanSu">甘肃</option>
+              <option value="QingHai">青海</option>
+              <option value="NingXia">宁夏</option>
+              <option value="XiZang">西藏</option>
+              <option value="XinJiang">新疆</option>
+              <option value="NeiMengGu">内蒙古</option>
+              <option value="XiangGang">香港</option>
+              <option value="AoMen">澳门</option>
+              <option value="TaiWan">台湾</option>
+              <option value="HuNan">湖南</option>
+              <option value="HuBei">湖北</option>
+              <option value="HeNan">河南</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <select id="city" name="city" required disabled>
+              <option value="">请先选择省份</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 行运日期和时间 -->
+        <div class="form-group">
+          <label>行运日期和时间（查询运势的日期）</label>
+          <div class="date-row">
+            <select id="transitYear" name="transitYear">
+              <option value="">年</option>
+            </select>
+            <select id="transitMonth" name="transitMonth">
+              <option value="">月</option>
+              <option value="1">1月</option>
+              <option value="2">2月</option>
+              <option value="3">3月</option>
+              <option value="4">4月</option>
+              <option value="5">5月</option>
+              <option value="6">6月</option>
+              <option value="7">7月</option>
+              <option value="8">8月</option>
+              <option value="9">9月</option>
+              <option value="10">10月</option>
+              <option value="11">11月</option>
+              <option value="12">12月</option>
+            </select>
+            <select id="transitDay" name="transitDay" disabled>
+              <option value="">日</option>
+            </select>
+          </div>
+          <div class="time-row" style="margin-top: 10px;">
+            <select id="transitHour" name="transitHour">
+              <option value="">时</option>
+            </select>
+            <select id="transitMinute" name="transitMinute">
+              <option value="">分</option>
+            </select>
+            <div class="checkbox-group">
+              <input type="checkbox" id="useCurrentTime" name="useCurrentTime" checked>
+              <label for="useCurrentTime">使用当前时间</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 提交按钮 -->
+        <button type="submit" class="submit-btn" id="submitBtn">
+          🔮 生成星盘报告
+        </button>
+      </form>
+
+      <!-- 加载动画 -->
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>正在计算星盘，请稍候...</p>
+      </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="footer">
+      <p>基于古典占星学原理 | 结果仅供参考</p>
+    </div>
+  </div>
+
+  <!-- 城市数据 -->
+  <script src="{{ url_for('static', filename='js/city-data.js') }}"></script>
+  
+  <script>
+    // 生成星空背景
+    function createStars() {
+      const starsContainer = document.getElementById('stars');
+      for (let i = 0; i < 100; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 3 + 's';
+        starsContainer.appendChild(star);
+      }
+    }
+    createStars();
+
+    // 初始化日期选择器
+    function initDateSelectors() {
+      const yearSelect = document.getElementById('birthYear');
+      const monthSelect = document.getElementById('birthMonth');
+      const daySelect = document.getElementById('birthDay');
+      const hourSelect = document.getElementById('birthHour');
+      const minuteSelect = document.getElementById('birthMinute');
+
+      // 填充年份（1900-2024，倒序）
+      const currentYear = new Date().getFullYear();
+      for (let year = currentYear; year >= 1900; year--) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year + '年';
+        yearSelect.appendChild(option);
+      }
+
+      // 填充小时（0-23）
+      for (let hour = 0; hour < 24; hour++) {
+        const option = document.createElement('option');
+        option.value = hour;
+        option.textContent = hour.toString().padStart(2, '0') + '时';
+        hourSelect.appendChild(option);
+      }
+
+      // 填充分钟（0-59，间隔5分钟）
+      for (let minute = 0; minute < 60; minute += 5) {
+        const option = document.createElement('option');
+        option.value = minute;
+        option.textContent = minute.toString().padStart(2, '0') + '分';
+        minuteSelect.appendChild(option);
+      }
+
+      // 月份变化时更新日期
+      monthSelect.addEventListener('change', updateDays);
+      yearSelect.addEventListener('change', updateDays);
+
+      function updateDays() {
+        const year = parseInt(yearSelect.value);
+        const month = parseInt(monthSelect.value);
+
+        if (!year || !month) {
+          daySelect.innerHTML = '<option value="">日</option>';
+          daySelect.disabled = true;
+          return;
+        }
+
+        // 获取该月的天数
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        // 保存当前选择
+        const currentDay = daySelect.value;
+
+        // 重新填充日期
+        daySelect.innerHTML = '<option value="">日</option>';
+        for (let day = 1; day <= daysInMonth; day++) {
+          const option = document.createElement('option');
+          option.value = day;
+          option.textContent = day + '日';
+          daySelect.appendChild(option);
+        }
+
+        // 恢复选择（如果有效）
+        if (currentDay && currentDay <= daysInMonth) {
+          daySelect.value = currentDay;
+        }
+
+        daySelect.disabled = false;
+      }
+
+      // 默认选择今天
+      const today = new Date();
+      yearSelect.value = today.getFullYear();
+      monthSelect.value = today.getMonth() + 1;
+      updateDays();
+      daySelect.value = today.getDate();
+    }
+
+    initDateSelectors();
+
+    // 初始化行运日期时间选择器
+    function initTransitDateTime() {
+      const transitYearSelect = document.getElementById('transitYear');
+      const transitMonthSelect = document.getElementById('transitMonth');
+      const transitDaySelect = document.getElementById('transitDay');
+      const transitHourSelect = document.getElementById('transitHour');
+      const transitMinuteSelect = document.getElementById('transitMinute');
+      const useCurrentTimeCheckbox = document.getElementById('useCurrentTime');
+
+      // 填充年份（2020-2030，倒序）
+      const currentYear = new Date().getFullYear();
+      for (let year = currentYear + 5; year >= 2020; year--) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year + '年';
+        transitYearSelect.appendChild(option);
+      }
+
+      // 填充小时（0-23）
+      for (let hour = 0; hour < 24; hour++) {
+        const option = document.createElement('option');
+        option.value = hour;
+        option.textContent = hour.toString().padStart(2, '0') + '时';
+        transitHourSelect.appendChild(option);
+      }
+
+      // 填充分钟（0-59，间隔5分钟）
+      for (let minute = 0; minute < 60; minute += 5) {
+        const option = document.createElement('option');
+        option.value = minute;
+        option.textContent = minute.toString().padStart(2, '0') + '分';
+        transitMinuteSelect.appendChild(option);
+      }
+
+      // 月份变化时更新日期
+      transitMonthSelect.addEventListener('change', updateTransitDays);
+      transitYearSelect.addEventListener('change', updateTransitDays);
+
+      function updateTransitDays() {
+        const year = parseInt(transitYearSelect.value);
+        const month = parseInt(transitMonthSelect.value);
+
+        if (!year || !month) {
+          transitDaySelect.innerHTML = '<option value="">日</option>';
+          transitDaySelect.disabled = true;
+          return;
+        }
+
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const currentDay = transitDaySelect.value;
+
+        transitDaySelect.innerHTML = '<option value="">日</option>';
+        for (let day = 1; day <= daysInMonth; day++) {
+          const option = document.createElement('option');
+          option.value = day;
+          option.textContent = day + '日';
+          transitDaySelect.appendChild(option);
+        }
+
+        if (currentDay && currentDay <= daysInMonth) {
+          transitDaySelect.value = currentDay;
+        }
+
+        transitDaySelect.disabled = false;
+      }
+
+      // 使用当前时间复选框处理
+      useCurrentTimeCheckbox.addEventListener('change', function() {
+        const now = new Date();
+        if (this.checked) {
+          // 设置为当前时间
+          transitYearSelect.value = now.getFullYear();
+          transitMonthSelect.value = now.getMonth() + 1;
+          updateTransitDays();
+          transitDaySelect.value = now.getDate();
+          transitHourSelect.value = now.getHours();
+          transitMinuteSelect.value = Math.floor(now.getMinutes() / 5) * 5;
+          
+          // 禁用选择
+          transitYearSelect.disabled = true;
+          transitMonthSelect.disabled = true;
+          transitDaySelect.disabled = true;
+          transitHourSelect.disabled = true;
+          transitMinuteSelect.disabled = true;
+          
+          // 添加视觉反馈
+          [transitYearSelect, transitMonthSelect, transitDaySelect, transitHourSelect, transitMinuteSelect].forEach(el => {
+            el.style.opacity = '0.6';
+          });
+        } else {
+          // 启用选择
+          transitYearSelect.disabled = false;
+          transitMonthSelect.disabled = false;
+          transitDaySelect.disabled = false;
+          transitHourSelect.disabled = false;
+          transitMinuteSelect.disabled = false;
+          
+          [transitYearSelect, transitMonthSelect, transitDaySelect, transitHourSelect, transitMinuteSelect].forEach(el => {
+            el.style.opacity = '1';
+          });
+        }
+      });
+
+      // 默认设置为当前时间
+      const now = new Date();
+      transitYearSelect.value = now.getFullYear();
+      transitMonthSelect.value = now.getMonth() + 1;
+      updateTransitDays();
+      transitDaySelect.value = now.getDate();
+      transitHourSelect.value = now.getHours();
+      transitMinuteSelect.value = Math.floor(now.getMinutes() / 5) * 5;
+      
+      // 默认禁用（因为勾选了"使用当前时间"）
+      transitYearSelect.disabled = true;
+      transitMonthSelect.disabled = true;
+      transitDaySelect.disabled = true;
+      transitHourSelect.disabled = true;
+      transitMinuteSelect.disabled = true;
+      
+      [transitYearSelect, transitMonthSelect, transitDaySelect, transitHourSelect, transitMinuteSelect].forEach(el => {
+        el.style.opacity = '0.6';
+      });
+    }
+
+    initTransitDateTime();
+
+    // 分钟不确定复选框处理
+    document.getElementById('unknownMinute').addEventListener('change', function() {
+      const minuteSelect = document.getElementById('birthMinute');
+      if (this.checked) {
+        minuteSelect.value = '0';
+        minuteSelect.disabled = true;
+        minuteSelect.style.opacity = '0.5';
+      } else {
+        minuteSelect.disabled = false;
+        minuteSelect.style.opacity = '1';
+      }
+    });
+
+    // 省份选择变化时更新城市列表
+    const provinceSelect = document.getElementById('province');
+    const citySelect = document.getElementById('city');
+
+    provinceSelect.addEventListener('change', function() {
+      const province = this.value;
+      citySelect.innerHTML = '<option value="">请选择城市</option>';
+      
+      if (province && cityData[province]) {
+        citySelect.disabled = false;
+        cityData[province].forEach(city => {
+          const option = document.createElement('option');
+          option.value = city.coordinates;
+          option.textContent = city.name;
+          citySelect.appendChild(option);
+        });
+      } else {
+        citySelect.disabled = true;
+      }
+    });
+
+    // 表单提交处理
+    document.getElementById('astrologyForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('submitBtn');
+      const loading = document.getElementById('loading');
+      const errorMessage = document.getElementById('errorMessage');
+
+      // 隐藏错误信息
+      errorMessage.classList.remove('active');
+
+      // 获取表单数据
+      const name = document.getElementById('name').value;
+      const birthYear = document.getElementById('birthYear').value;
+      const birthMonth = document.getElementById('birthMonth').value;
+      const birthDay = document.getElementById('birthDay').value;
+      const birthHour = document.getElementById('birthHour').value;
+      const birthMinute = document.getElementById('birthMinute').value;
+      const unknownMinute = document.getElementById('unknownMinute').checked;
+      const timezone = document.getElementById('timezone').value;
+      const province = document.getElementById('province').value;
+      const city = document.getElementById('city').value;
+      const coordinates = citySelect.value;
+      const location = province && city ? `${province} ${city}` : '';
+      
+      // 获取行运日期时间
+      const useCurrentTime = document.getElementById('useCurrentTime').checked;
+      let transitYear, transitMonth, transitDay, transitHour, transitMinute;
+      
+      if (useCurrentTime) {
+        const now = new Date();
+        transitYear = now.getFullYear();
+        transitMonth = now.getMonth() + 1;
+        transitDay = now.getDate();
+        transitHour = now.getHours();
+        transitMinute = now.getMinutes();
+      } else {
+        transitYear = document.getElementById('transitYear').value;
+        transitMonth = document.getElementById('transitMonth').value;
+        transitDay = document.getElementById('transitDay').value;
+        transitHour = document.getElementById('transitHour').value;
+        transitMinute = document.getElementById('transitMinute').value;
+      }
+
+      // 验证日期
+      if (!birthYear || !birthMonth || !birthDay) {
+        errorMessage.textContent = '请选择完整的出生日期';
+        errorMessage.classList.add('active');
+        return;
+      }
+
+      // 验证时间
+      if (!birthHour) {
+        errorMessage.textContent = '请选择出生时间（小时）';
+        errorMessage.classList.add('active');
+        return;
+      }
+
+      // 如果分钟不确定，设为00
+      const finalMinute = unknownMinute ? '00' : (birthMinute || '00');
+
+      // 验证时区
+      if (!timezone) {
+        errorMessage.textContent = '请选择时区';
+        errorMessage.classList.add('active');
+        return;
+      }
+
+      // 组合日期和时间
+      const birthDate = `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`;
+      const birthTime = `${birthHour.padStart(2, '0')}:${finalMinute.padStart(2, '0')}`;
+      
+      // 组合行运日期和时间
+      const transitDate = `${transitYear}-${transitMonth.toString().padStart(2, '0')}-${transitDay.toString().padStart(2, '0')}`;
+      const transitTime = `${transitHour.toString().padStart(2, '0')}:${transitMinute.toString().padStart(2, '0')}`;
+
+      // 将坐标格式从 "116:28E,39:54N" 转换为 "116.47,39.90"
+      const coords = coordinates.replace(/:/g, '.').replace(/[ENSW]/g, '');
+      const [lon, lat] = coords.split(',');
+
+      // 显示加载状态
+      submitBtn.disabled = true;
+      loading.classList.add('active');
+
+      try {
+        const response = await fetch('/calculate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: name,
+            birthDate: birthDate,
+            birthTime: birthTime,
+            timezone: timezone,
+            coordinates: `${lon},${lat}`,
+            location: location,
+            transitDate: transitDate,
+            transitTime: transitTime
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          window.location.href = result.redirect_url;
+        } else {
+          errorMessage.textContent = result.error || '计算失败，请重试';
+          errorMessage.classList.add('active');
+          submitBtn.disabled = false;
+          loading.classList.remove('active');
+        }
+      } catch (error) {
+        errorMessage.textContent = '网络错误，请检查连接后重试';
+        errorMessage.classList.add('active');
+        submitBtn.disabled = false;
+        loading.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>

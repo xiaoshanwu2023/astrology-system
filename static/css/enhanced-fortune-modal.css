@@ -1,0 +1,228 @@
+/**
+ * 增强版运势模态框额外样式
+ * 支持重要提醒、逆行、日月食显示
+ */
+
+/* ===== 重要提醒区域 ===== */
+.important-alerts {
+  margin: 20px 0;
+  padding: 20px;
+  background: linear-gradient(145deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 15px;
+}
+
+.alerts-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.alerts-icon {
+  font-size: 1.5rem;
+}
+
+.alerts-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffd700;
+}
+
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alert-card {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border-left: 4px solid;
+  transition: all 0.3s ease;
+}
+
+.alert-card:hover {
+  transform: translateX(5px);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.alert-retrograde {
+  border-left-color: #ff6b6b;
+}
+
+.alert-eclipse {
+  border-left-color: #ffd700;
+}
+
+.alert-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 8px;
+}
+
+.alert-text {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.alert-advice {
+  font-size: 0.85rem;
+  color: #00ff64;
+  padding: 8px 12px;
+  background: rgba(0, 255, 100, 0.1);
+  border-radius: 8px;
+}
+
+.alert-themes {
+  font-size: 0.85rem;
+  color: #ffd700;
+}
+
+/* ===== 运势正文区域 ===== */
+.reading-section {
+  margin-bottom: 25px;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffd700;
+  margin-bottom: 12px;
+  padding-left: 12px;
+  border-left: 3px solid #ffd700;
+}
+
+.reading-section p {
+  margin-bottom: 12px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ===== 详情子区域 ===== */
+.details-subsection {
+  margin-bottom: 25px;
+}
+
+.subsection-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 15px;
+  padding-left: 10px;
+  border-left: 3px solid #6b4ee6;
+}
+
+/* 逆行状态样式 */
+.detail-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.detail-status.retrograde {
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+}
+
+.detail-status.direct {
+  background: rgba(0, 255, 100, 0.2);
+  color: #00ff64;
+}
+
+.detail-card.retrograde {
+  border-left: 3px solid #ff6b6b;
+}
+
+.detail-card.direct {
+  border-left: 3px solid #00ff64;
+}
+
+.detail-areas {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 8px;
+}
+
+/* 日月食样式 */
+.detail-house {
+  padding: 4px 12px;
+  background: rgba(255, 215, 0, 0.15);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: #ffd700;
+}
+
+.detail-themes {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 8px;
+}
+
+/* 情绪标签样式扩展 */
+.sentiment-very_positive {
+  background: rgba(0, 255, 100, 0.25) !important;
+  color: #00ff64 !important;
+}
+
+.sentiment-positive {
+  background: rgba(0, 255, 100, 0.15) !important;
+  color: #00ff64 !important;
+}
+
+.sentiment-mixed {
+  background: rgba(255, 200, 0, 0.2) !important;
+  color: #ffc800 !important;
+}
+
+/* ===== 响应式设计 ===== */
+@media (max-width: 768px) {
+  .important-alerts {
+    padding: 15px;
+  }
+  
+  .alert-card {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .alert-icon {
+    font-size: 1.5rem;
+  }
+  
+  .subsection-title {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .alerts-title {
+    font-size: 1rem;
+  }
+  
+  .alert-title {
+    font-size: 0.95rem;
+  }
+  
+  .section-title {
+    font-size: 1rem;
+  }
+}

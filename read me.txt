@@ -1,0 +1,18 @@
+# 进入项目目录
+cd /Users/wuxiaoshan/Desktop/astrology-system
+
+# 创建虚拟环境
+python3 -m venv venv
+
+# 激活虚拟环境
+source venv/bin/activate
+
+# 安装依赖
+pip install pytz flask pandas pyswisseph
+# 确保在虚拟环境中
+source /Users/wuxiaoshan/Desktop/astrology-system/venv/bin/activate
+
+# 安装缺失的依赖
+pip install openpyxl pytz
+
+python app.py

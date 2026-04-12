@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>出错了 - 星盘查询</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Serif SC', serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .error-container {
+      text-align: center;
+      max-width: 500px;
+    }
+
+    .error-icon {
+      font-size: 5rem;
+      margin-bottom: 20px;
+    }
+
+    .error-code {
+      font-size: 6rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: 20px;
+    }
+
+    .error-title {
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+    }
+
+    .error-message {
+      color: #a0a0a0;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(241, 39, 17, 0.4);
+    }
+
+    @media (max-width: 480px) {
+      .error-code {
+        font-size: 4rem;
+      }
+      .error-title {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="error-container">
+    <div class="error-icon">💫</div>
+    <div class="error-code">Oops</div>
+    <h1 class="error-title">星象出现了波动</h1>
+    <p class="error-message">
+      {{ error_message | default('服务器遇到了一些问题，请稍后再试。') }}
+    </p>
+    <a href="/" class="btn">返回首页</a>
+  </div>
+</body>
+</html>

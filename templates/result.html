@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>星盘报告 - 你的命运密码</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cosmic-theme.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fortune-modal.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/enhanced-fortune-modal.css') }}">
+  <style>
+    /* result 页面特定样式 - 简化版 */
+    .sign-badge-simple {
+      color: #e2e8f0;
+      font-size: 0.9rem;
+    }
+    
+    .label-natal {
+      color: #ffd700;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    
+    .label-transit {
+      color: #e2e8f0;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    
+    /* 月度天文事件样式 */
+    .astro-subsection {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .astro-subsection:last-child {
+      margin-bottom: 0;
+    }
+    
+    .astro-subsection h3 {
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+      color: #ffd700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .loading-text {
+      color: #888;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    /* 相位运势列表 */
+    .priority-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .priority-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 14px;
+      border-left: 3px solid;
+    }
+    
+    .priority-item.eclipse { border-left-color: #e74c3c; }
+    .priority-item.retrograde { border-left-color: #f39c12; }
+    .priority-item.moon-phase { border-left-color: #3498db; }
+    .priority-item.aspect { border-left-color: #9b59b6; }
+    
+    .priority-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    
+    .priority-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    
+    .priority-tag {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .priority-tag.house {
+      background: rgba(102, 126, 234, 0.2);
+      color: #667eea;
+    }
+    
+    .priority-tag.aspect {
+      background: rgba(243, 156, 18, 0.2);
+      color: #f39c12;
+    }
+    
+    .priority-tag.date {
+      background: rgba(46, 204, 113, 0.2);
+      color: #2ecc71;
+    }
+    
+    .priority-impact {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 4px;
+    }
+    
+    .priority-advice {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.6);
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+      border-left: 2px solid #f39c12;
+    }
+    
+    /* 事件列表容器 */
+    .event-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .event-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    
+    .event-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    
+    .event-icon {
+      font-size: 1.5rem;
+    }
+    
+    .event-title {
+      font-weight: 600;
+      flex: 1;
+    }
+    
+    .event-badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: auto;
+    }
+    
+    .event-badge.eclipse {
+      background: rgba(231, 76, 60, 0.2);
+      color: #ff6b6b;
+    }
+    
+    .event-badge.retrograde {
+      background: rgba(243, 156, 18, 0.2);
+      color: #f39c12;
+    }
+    
+    .event-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 8px;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .event-detail strong {
+      color: #fff;
+      display: block;
+      margin-bottom: 2px;
+    }
+    
+    /* 新月满月网格 */
+    .moon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+    }
+    
+    .moon-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+    
+    .moon-icon {
+      font-size: 2rem;
+      margin-bottom: 6px;
+    }
+    
+    .moon-type {
+      font-weight: 600;
+      color: #bb8fce;
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+    }
+    
+    .moon-sign {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 2px;
+    }
+    
+    .moon-house {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .moon-date {
+      font-size: 0.8rem;
+      color: #bb8fce;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(155, 89, 182, 0.2);
+    }
+    
+    .empty-state-inline {
+      text-align: center;
+      padding: 20px;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <div class="header">
+      <h1>✨ 你的星盘报告</h1>
+      <p>本命盘与行运盘的深度解读</p>
+      
+      <!-- 用户信息 -->
+      {% if data.get('user_info') %}
+      <div class="user-info-section" style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; text-align: left; font-size: 0.9rem;">
+          {% if data['user_info'].get('name') %}
+          <div><span style="color: #888;">姓名：</span><span style="color: #e2e8f0;">{{ data['user_info']['name'] }}</span></div>
+          {% endif %}
+          <div><span style="color: #888;">出生日期：</span><span style="color: #e2e8f0;">{{ data['user_info']['birth_date'] }}</span></div>
+          <div><span style="color: #888;">出生时间：</span><span style="color: #e2e8f0;">{{ data['user_info']['birth_time'] }}</span></div>
+          {% if data['user_info'].get('birth_location') %}
+          <div><span style="color: #888;">出生地点：</span><span style="color: #e2e8f0;">{{ data['user_info']['birth_location'] }}</span></div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 本命盘 -->
+    <div class="card">
+      <h2>🌟 本命盘</h2>
+      <p style="color: #a0a0a0; margin-bottom: 15px; font-size: 0.9rem;">你出生时的星象配置，代表你的先天特质和潜能</p>
+      
+      <table class="chart-table">
+        <thead>
+          <tr>
+            <th>行星</th>
+            <th>星座</th>
+            <th>度数</th>
+            <th>宫位</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for planet, info in data['natal_chart'].items() %}
+          <tr>
+            <td>
+              <span class="planet-icon">
+                <span class="planet-symbol">{{ info['name_zh'][0] }}</span>
+                {{ info['name_zh'] }}
+              </span>
+            </td>
+            <td><span class="sign-badge-simple">{{ info['sign_zh'] }}</span></td>
+            <td>{{ info['degree'] }}°</td>
+            <td>第{{ info['house'] }}宫</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 行运盘 -->
+    <div class="card">
+      <h2>🌙 行运盘</h2>
+      <p style="color: #a0a0a0; margin-bottom: 15px; font-size: 0.9rem;">当前星象对你的影响，代表当下的运势和机遇</p>
+      
+      <table class="chart-table">
+        <thead>
+          <tr>
+            <th>行星</th>
+            <th>星座</th>
+            <th>度数</th>
+            <th>落入宫位</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for planet, info in data['transit_chart'].items() %}
+          <tr>
+            <td>
+              <span class="planet-icon">
+                <span class="planet-symbol">{{ info['name_zh'][0] }}</span>
+                {{ info['name_zh'] }}
+              </span>
+            </td>
+            <td><span class="sign-badge-simple">{{ info['sign_zh'] }}</span></td>
+            <td>{{ info['degree'] }}°</td>
+            <td>第{{ info['house'] }}宫</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 相位分析 -->
+    <div class="card">
+      <h2>⚡ 相位分析</h2>
+      <p style="color: #a0a0a0; margin-bottom: 15px; font-size: 0.9rem;">本命盘与行运盘之间的角度关系，揭示当前的影响</p>
+      
+      {% if data['aspects'] %}
+      <div class="aspect-grid">
+        {% for asp in data['aspects'][:8] %}
+        <div class="aspect-item">
+          <div class="aspect-title" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span class="label-natal">本命</span>
+            <span>{{ asp['natal_planet_zh'] }}</span>
+            <span style="color: #ffd700;">{{ asp['aspect_name'] }}</span>
+            <span class="label-transit">行运</span>
+            <span>{{ asp['transit_planet_zh'] }}</span>
+          </div>
+          <div class="aspect-desc" style="margin-top: 8px;">
+            <span class="label-natal">本命</span>{{ asp['natal_planet_zh'] }}(<span style="color: #e2e8f0;">{{ asp['natal_sign_zh'] }}</span>) 
+            <span class="label-transit">与行运</span>{{ asp['transit_planet_zh'] }}(<span style="color: #e2e8f0;">{{ asp['transit_sign_zh'] }}</span>) 
+            形成<span style="color: #ffd700;">{{ asp['aspect_name'] }}</span>，偏差{{ asp['deviation'] }}°
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">🌑</div>
+        <p>当前没有显著的相位影响</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 上升星座相位分析 -->
+    <div class="card">
+      <h2>⬆️ 上升星座与行运行星相位</h2>
+      <p style="color: #a0a0a0; margin-bottom: 15px; font-size: 0.9rem;">上升星座作为"人格面具"，与行运行星的相位影响你的外在表现和即时反应</p>
+      
+      {% set asc_aspects = data['aspects'] | selectattr('natal_planet', 'equalto', 'ascendant') | list %}
+      {% if asc_aspects %}
+      <div class="aspect-grid">
+        {% for asp in asc_aspects %}
+        <div class="aspect-item" style="border-left: 3px solid {% if asp['aspect_degree'] == 0 %}#ffd700{% elif asp['aspect_degree'] == 60 %}#4caf50{% elif asp['aspect_degree'] == 90 %}#f44336{% elif asp['aspect_degree'] == 120 %}#2196f3{% elif asp['aspect_degree'] == 180 %}#9c27b0{% else %}#757575{% endif %};">
+          <div class="aspect-title" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span class="label-natal">本命</span>
+            <span>上升星座</span>
+            <span style="color: #ffd700;">{{ asp['aspect_name'] }}</span>
+            <span class="label-transit">行运</span>
+            <span>{{ asp['transit_planet_zh'] }}</span>
+            <span style="font-size: 0.8rem; color: #888; margin-left: 8px;">({{ asp['deviation'] }}°)</span>
+          </div>
+          <div class="aspect-desc" style="margin-top: 8px;">
+            <span class="label-natal">本命</span>上升星座(<span style="color: #e2e8f0;">{{ asp['natal_sign_zh'] }}</span>)
+            <span class="label-transit">与行运</span>{{ asp['transit_planet_zh'] }}(<span style="color: #e2e8f0;">{{ asp['transit_sign_zh'] }}</span>)
+            形成<span style="color: #ffd700;">{{ asp['aspect_name'] }}</span>
+            {% if asp['aspect_degree'] == 0 %}
+              - 能量融合，外在形象与行运行星特质合一
+            {% elif asp['aspect_degree'] == 60 %}
+              - 机会相位，利于展现自我和社交互动
+            {% elif asp['aspect_degree'] == 90 %}
+              - 挑战相位，外在表现面临压力或冲突
+            {% elif asp['aspect_degree'] == 120 %}
+              - 和谐相位，天赋才能自然流露
+            {% elif asp['aspect_degree'] == 180 %}
+              - 对立相位，需要在自我与他人间平衡
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">🌟</div>
+        <p>当前行运行星与上升星座没有显著相位</p>
+        <p style="font-size: 0.85rem; margin-top: 10px;">这意味着你的外在表现相对稳定，没有强烈的行星能量影响</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 星象解读 -->
+    <div class="card">
+      <h2>📖 星象解读</h2>
+      <p style="color: #a0a0a0; margin-bottom: 15px; font-size: 0.9rem;">基于你的星盘配置，为你解读当下的运势和指引</p>
+      
+      {% if data['events']['sun_sign'] or data['events']['asc_sign'] or data['events']['planet_events'] or data['events']['aspect_events'] %}
+        
+        <!-- 太阳星座 -->
+        {% if data['events']['sun_sign'] %}
+        <h3>☀️ 太阳星座特质</h3>
+        <ul class="event-list">
+          {% for event in data['events']['sun_sign'] %}
+          <li>{{ event }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <!-- 上升星座 -->
+        {% if data['events']['asc_sign'] %}
+        <h3>⬆️ 上升星座影响</h3>
+        <ul class="event-list">
+          {% for event in data['events']['asc_sign'] %}
+          <li>{{ event }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <!-- 行星落入 -->
+        {% if data['events']['planet_events'] %}
+        <h3>🪐 行星位置指引</h3>
+        <ul class="event-list">
+          {% for item in data['events']['planet_events'] %}
+          <li>
+            <strong>{{ item['planet'] }}落入{{ item['sign'] }}第{{ item['house'] }}宫</strong>
+            <p>{{ item['events'][0] if item['events'] else '暂无解读' }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <!-- 相位事件 -->
+        {% if data['events']['aspect_events'] %}
+        <h3>✨ 相位运势</h3>
+        <ul class="event-list">
+          {% for item in data['events']['aspect_events'] %}
+          <li>
+            <strong style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span class="label-natal">本命</span>
+              {{ item['planet_a_zh'] if item.get('planet_a_zh') else item['query'].split()[0] }}
+              <span style="color: #ffd700;">{{ item['aspect_type'] if item.get('aspect_type') else item['query'].split()[1] }}</span>
+              <span class="label-transit">行运</span>
+              {{ item['planet_b_zh'] if item.get('planet_b_zh') else item['query'].split()[2] }}
+            </strong>
+            <p style="margin-top: 8px;">{{ item['events'][0] if item['events'] else '暂无解读' }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">🔮</div>
+        <p>暂无星象解读数据</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 运势优先级系统 - 按重要性排序的天象解读 -->
+    <div class="card" id="fortunePrioritySection">
+      <h2>✨ 运势解读（按重要性排序）</h2>
+      <p style="color: #a0a0a0; margin-bottom: 20px; font-size: 0.9rem;">基于实时天文计算，为你识别当前最重要的天象影响</p>
+      
+      <div class="astro-subsection" id="priorityLoadingSection">
+        <div class="loading-text">正在分析天象优先级...</div>
+      </div>
+      
+      <div class="priority-list" id="fortunePriorityList" style="display: none;"></div>
+    </div>
+
+    <!-- 月度天文事件摘要 -->
+    <div class="card" id="monthlyAstroSection">
+      <h2>🌟 月度天文事件</h2>
+      <p style="color: #a0a0a0; margin-bottom: 20px; font-size: 0.9rem;">基于您选择的行运日期，查询当月重要天象影响</p>
+      
+      <!-- 1. 相位运势 -->
+      <div class="astro-subsection" id="phaseFortuneSection">
+        <h3>⭐ 相位运势</h3>
+        <div class="loading-text" id="phaseLoading">正在分析天象影响...</div>
+        <div class="priority-list" id="phaseList" style="display: none;"></div>
+      </div>
+      
+      <!-- 2. 当月日月食 -->
+      <div class="astro-subsection" id="eclipseSection">
+        <h3>🌑 当月日月食</h3>
+        <div class="loading-text" id="eclipseLoading">正在检测日月食...</div>
+        <div class="event-list-container" id="eclipseList" style="display: none;"></div>
+      </div>
+      
+      <!-- 3. 当月行星逆行 -->
+      <div class="astro-subsection" id="retrogradeSection">
+        <h3>🪐 当月行星逆行</h3>
+        <div class="loading-text" id="retroLoading">正在检测行星逆行...</div>
+        <div class="event-list-container" id="retroList" style="display: none;"></div>
+      </div>
+      
+      <!-- 4. 当月新月满月 -->
+      <div class="astro-subsection" id="moonPhaseSection">
+        <h3>🌙 当月新月满月</h3>
+        <div class="loading-text" id="moonLoading">正在计算月相...</div>
+        <div class="moon-grid" id="moonList" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- 增强版运势解读按钮 -->
+    <div class="card" style="text-align: center; padding: 30px;">
+      <h2>✨ 珊姐运势解读</h2>
+      <p style="color: #a0a0a0; margin-bottom: 20px; font-size: 0.9rem;">基于古典占星风格，为你解读行运星象，包含逆行提醒与日月食预报</p>
+      
+      <div class="fortune-action-container">
+        <button id="enhancedFortuneBtn" class="btn-cosmic btn-fortune" type="button">
+          <span class="btn-icon">✨</span>
+          <span class="btn-text">查看详细运势解读</span>
+          <span class="btn-glow"></span>
+        </button>
+      </div>
+      
+      <!-- 隐藏字段：供JS读取太阳星座和行运日期 -->
+      {% set sun_sign_zh = data['natal_chart']['sun']['sign_zh'] if data['natal_chart'].get('sun') else '白羊座' %}
+      <span id="sunSign" data-sign="{{ sun_sign_zh }}" style="display: none;">{{ sun_sign_zh }}</span>
+      <span id="transitDate" style="display: none;">{{ data.get('transit_date', '2025-01-15') }}</span>
+    </div>
+
+    <!-- 按钮组 -->
+    <div class="btn-group">
+      <a href="{{ url_for('index') }}" class="btn btn-primary">
+        🔄 重新查询
+      </a>
+      <button class="btn btn-secondary" onclick="window.print()">
+        🖨️ 打印报告
+      </button>
+    </div>
+  </div>
+
+  <!-- 增强版运势模态框 -->
+  {% include 'enhanced_fortune_modal.html' %}
+
+  <!-- 引入JavaScript -->
+  <script src="{{ url_for('static', filename='js/enhanced_fortune_modal.js') }}"></script>
+  
+  <!-- 月度天文事件摘要脚本 -->
+  <script>
+    // 2026年天文数据 - 使用Skyfield实时计算
+    // 这些数据是计算结果，API优先使用实时计算
+    const astroData2026 = {
+      // 日月食 - Skyfield实时计算
+      eclipses: [
+        { date: '2026-02-17', type: '日偏食', sign: '水瓶座', degree: '28°', icon: '🌑' },
+        { date: '2026-03-03', type: '月全食', sign: '处女座', degree: '12°32\'', icon: '🌕' },
+        { date: '2026-08-12', type: '日偏食', sign: '狮子座', degree: '19°', icon: '🌑' },
+        { date: '2026-08-28', type: '月全食', sign: '双鱼座', degree: '4°32\'', icon: '🌕' }
+      ],
+      // 行星逆行 - Skyfield实时计算
+      retrogrades: [
+        { planet: '水星', start: '2026-02-27', end: '2026-03-21', sign: '双鱼座' },
+        { planet: '木星', start: '2026-07-21', end: '2026-11-16', sign: '巨蟹座' },
+        { planet: '土星', start: '2026-07-28', end: '2026-12-11', sign: '白羊座' }  // ✅ 已校正
+      ],
+      // 新月满月 - Skyfield实时计算
+      moonPhases: [
+        { date: '2026-03-03', type: '满月', sign: '处女座', degree: '12°', icon: '🌕', isEclipse: true },
+        { date: '2026-03-19', type: '新月', sign: '双鱼座', degree: '28°', icon: '🌑' },
+        { date: '2026-04-02', type: '满月', sign: '天秤座', degree: '14°', icon: '🌕' },
+        { date: '2026-04-17', type: '新月', sign: '白羊座', degree: '27°', icon: '🌑' }
+      ]
+    };
+    
+    const houseNames = {
+      1: '命宫', 2: '财帛宫', 3: '兄弟宫', 4: '田宅宫',
+      5: '子女宫', 6: '奴仆宫', 7: '夫妻宫', 8: '疾厄宫',
+      9: '迁移宫', 10: '官禄宫', 11: '福德宫', 12: '玄秘宫'
+    };
+    
+    // 获取太阳星座
+    function getSunSign() {
+      const sunSignEl = document.getElementById('sunSign');
+      return sunSignEl ? sunSignEl.textContent.trim() : '白羊座';
+    }
+    
+    // 获取行运日期
+    function getTransitDate() {
+      const dateEl = document.getElementById('transitDate');
+      return dateEl ? dateEl.textContent.trim() : new Date().toISOString().split('T')[0];
+    }
+    
+    // 计算宫位（简化版：以太阳星座为1宫头）
+    function calculateHouse(natalSign, transitSign) {
+      const signs = ['白羊座', '金牛座', '双子座', '巨蟹座', '狮子座', '处女座',
+                     '天秤座', '天蝎座', '射手座', '摩羯座', '水瓶座', '双鱼座'];
+      const natalIdx = signs.indexOf(natalSign);
+      const transitIdx = signs.indexOf(transitSign);
+      if (natalIdx === -1 || transitIdx === -1) return 1;
+      return ((transitIdx - natalIdx + 12) % 12) + 1;
+    }
+    
+    // 格式化日期
+    function formatDateCN(dateStr) {
+      const d = new Date(dateStr);
+      return `${d.getMonth() + 1}月${d.getDate()}日`;
+    }
+    
+    // 加载所有月度天文事件 - 使用实时API
+    async function loadMonthlyAstroEvents() {
+      const sunSign = getSunSign();
+      const transitDate = getTransitDate();
+      const date = new Date(transitDate);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      
+      try {
+        // 调用API获取实时天文事件
+        const response = await fetch(`/api/astro-events?year=${year}&month=${month}&sun_sign=${sunSign}`);
+        const result = await response.json();
+        
+        if (result.success) {
+          // 使用API数据渲染
+          renderEclipses(result.data.eclipses);
+          renderMoonPhases(result.data.moon_phases);
+          renderRetrogrades(result.data.retrogrades);
+          // 相位运势仍然使用模拟数据（需要后端支持）
+          loadPhaseFortune(sunSign, date);
+        } else {
+          // API失败时使用本地数据
+          console.warn('API获取失败，使用本地数据:', result.error);
+          loadMonthEclipses(sunSign, date);
+          loadMonthRetrogrades(sunSign, date);
+          loadMonthMoonPhases(sunSign, date);
+          loadPhaseFortune(sunSign, date);
+        }
+      } catch (error) {
+        console.error('获取天文事件失败:', error);
+        // 使用本地数据作为回退
+        loadMonthEclipses(sunSign, date);
+        loadMonthRetrogrades(sunSign, date);
+        loadMonthMoonPhases(sunSign, date);
+        loadPhaseFortune(sunSign, date);
+      }
+    }
+    
+    // 渲染日月食（API数据）
+    function renderEclipses(eclipses) {
+      const container = document.getElementById('eclipseList');
+      const loading = document.getElementById('eclipseLoading');
+      
+      if (!eclipses || eclipses.length === 0) {
+        container.innerHTML = '<div class="empty-state-inline">✨ 本月无日月食</div>';
+        loading.style.display = 'none';
+        container.style.display = 'block';
+        return;
+      }
+      
+      let html = '';
+      eclipses.forEach(e => {
+        const houseStr = e.house ? `第${e.house}宫 ${e.house_name}` : '';
+        html += `
+          <div class="event-item">
+            <div class="event-header">
+              <span class="event-icon">${e.category === '月食' ? '🌕' : '🌑'}</span>
+              <span class="event-title">${e.sign}${e.type}</span>
+              <span class="event-badge eclipse">${e.type}</span>
+            </div>
+            <div class="event-details">
+              <div class="event-detail">
+                <strong>📅 日期</strong>
+                ${e.date}
+              </div>
+              <div class="event-detail">
+                <strong>⏰ 时间</strong>
+                ${e.time}
+              </div>
+              <div class="event-detail">
+                <strong>♈ 星座</strong>
+                ${e.sign} ${e.degree}°
+              </div>
+              ${houseStr ? `<div class="event-detail"><strong>🏠 宫位</strong>${houseStr}</div>` : ''}
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+      loading.style.display = 'none';
+      container.style.display = 'flex';
+      container.style.flexDirection = 'column';
+    }
+    
+    // 渲染新月满月（API数据）
+    function renderMoonPhases(phases) {
+      const container = document.getElementById('moonList');
+      const loading = document.getElementById('moonLoading');
+      
+      if (!phases || phases.length === 0) {
+        container.innerHTML = '<div class="empty-state-inline">本月无新月满月记录</div>';
+        loading.style.display = 'none';
+        container.style.display = 'block';
+        return;
+      }
+      
+      let html = '';
+      phases.forEach(mp => {
+        const houseStr = mp.house ? `第${mp.house}宫` : '';
+        html += `
+          <div class="moon-item">
+            <div class="moon-icon">${mp.type === '满月' ? '🌕' : '🌑'}</div>
+            <div class="moon-type">${mp.type}</div>
+            <div class="moon-sign">${mp.sign} ${mp.degree}°</div>
+            ${houseStr ? `<div class="moon-house">${houseStr}</div>` : ''}
+            <div class="moon-date">${mp.date}</div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+      loading.style.display = 'none';
+      container.style.display = 'grid';
+    }
+    
+    // 渲染逆行（API数据）
+    function renderRetrogrades(retrogrades) {
+      const container = document.getElementById('retroList');
+      const loading = document.getElementById('retroLoading');
+      
+      if (!retrogrades || retrogrades.length === 0) {
+        container.innerHTML = '<div class="empty-state-inline">🟢 本月无行星逆行，适合推进计划</div>';
+        loading.style.display = 'none';
+        container.style.display = 'block';
+        return;
+      }
+      
+      let html = '';
+      retrogrades.forEach(r => {
+        const houseStr = r.house ? `第${r.house}宫 ${r.house_name}` : '';
+        html += `
+          <div class="event-item">
+            <div class="event-header">
+              <span class="event-icon">🪐</span>
+              <span class="event-title">${r.planet}逆行于${r.sign}</span>
+              <span class="event-badge retrograde">逆行中</span>
+            </div>
+            <div class="event-details">
+              <div class="event-detail">
+                <strong>📅 逆行期</strong>
+                ${r.start} - ${r.end}
+              </div>
+              <div class="event-detail">
+                <strong>♈ 所在星座</strong>
+                ${r.sign}
+              </div>
+              ${houseStr ? `<div class="event-detail"><strong>🏠 影响宫位</strong>${houseStr}</div>` : ''}
+              <div class="event-detail">
+                <strong>⚠️ 影响领域</strong>
+                ${r.affected_areas}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+      loading.style.display = 'none';
+      container.style.display = 'flex';
+      container.style.flexDirection = 'column';
+    }
+    
+    // 1. 加载相位运势
+    function loadPhaseFortune(sunSign, date) {
+      const container = document.getElementById('phaseList');
+      const loading = document.getElementById('phaseLoading');
+      const month = date.getMonth() + 1;
+      
+      // 根据星座和月份生成模拟数据
+      let phases = [];
+      
+      if (sunSign === '处女座' && month === 3) {
+        phases = [
+          {
+            type: 'moon-phase',
+            priority: 'moon-phase',
+            title: '🌕 处女座满月',
+            house: 1,
+            aspect: '合相',
+            days: '2天后',
+            impact: '高潮或完成，命宫的事情达到顶点',
+            advice: '💡 庆祝成果，释放不再需要的，准备新的周期'
+          },
+          {
+            type: 'retrograde',
+            priority: 'retrograde',
+            title: '🪐 土星逆行于白羊座',
+            house: 8,
+            aspect: '对分相',
+            days: '进行中',
+            impact: '土星能量与自我核心对立平衡，关系课题',
+            advice: '💡 寻求平衡，理解对立，面对深层恐惧'
+          }
+        ];
+      } else if (sunSign === '白羊座' && month === 4) {
+        phases = [
+          {
+            type: 'moon-phase',
+            priority: 'moon-phase',
+            title: '🌑 白羊座新月',
+            house: 1,
+            aspect: '合相',
+            days: '10天后',
+            impact: '新的开始，命宫启动新计划',
+            advice: '💡 设定意图，播种新的目标'
+          }
+        ];
+      } else {
+        phases = [
+          {
+            type: 'aspect',
+            priority: 'aspect',
+            title: '⭐ 木星三分相太阳',
+            house: 9,
+            aspect: '三分相',
+            days: '持续',
+            impact: '扩张与幸运，迁移宫带来成长机会',
+            advice: '💡 把握机会，拓展视野'
+          }
+        ];
+      }
+      
+      // 渲染
+      let html = '';
+      phases.forEach((p, i) => {
+        html += `
+          <div class="priority-item ${p.priority}">
+            <div class="priority-header">
+              <span>${p.title}</span>
+            </div>
+            <div class="priority-meta">
+              <span class="priority-tag house">🏠 第${p.house}宫 ${houseNames[p.house]}</span>
+              <span class="priority-tag aspect">⭐ ${p.aspect}</span>
+              <span class="priority-tag date">📅 ${p.days}</span>
+            </div>
+            <div class="priority-impact">${p.impact}</div>
+            <div class="priority-advice">${p.advice}</div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+      loading.style.display = 'none';
+      container.style.display = 'flex';
+    }
+    
+    // 2. 加载当月日月食
+    function loadMonthEclipses(sunSign, date) {
+      const container = document.getElementById('eclipseList');
+      const loading = document.getElementById('eclipseLoading');
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      
+      const monthEclipses = astroData2026.eclipses.filter(e => {
+        const eDate = new Date(e.date);
+        return eDate.getFullYear() === year && eDate.getMonth() + 1 === month;
+      });
+      
+      if (monthEclipses.length === 0) {
+        container.innerHTML = '<div class="empty-state-inline">✨ 本月无日月食</div>';
+        loading.style.display = 'none';
+        container.style.display = 'block';
+        return;
+      }
+      
+      let html = '';
+      monthEclipses.forEach(e => {
+        const house = calculateHouse(sunSign, e.sign);
+        html += `
+          <div class="event-item">
+            <div class="event-header">
+              <span class="event-icon">${e.icon}</span>
+              <span class="event-title">${e.sign}${e.type}</span>
+              <span class="event-badge eclipse">${e.type}</span>
+            </div>
+            <div class="event-details">
+              <div class="event-detail">
+                <strong>📅 日期</strong>
+                ${formatDateCN(e.date)}
+              </div>
+              <div class="event-detail">
+                <strong>♈ 星座</strong>
+                ${e.sign} ${e.degree}
+              </div>
+              <div class="event-detail">
+                <strong>🏠 宫位</strong>
+                第${house}宫 ${houseNames[house]}
+              </div>
+              <div class="event-detail">
+                <strong>⚠️ 影响</strong>
+                重大转折
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+      loading.style.display = 'none';
+      container.style.display = 'flex';
+      container.style.flexDirection = 'column';
+    }
+    
+    // 3. 加载当月行星逆行
+    function loadMonthRetrogrades(sunSign, date) {
+      const container = document.getElementById('retroList');
+      const loading = document.getElementById('retroLoading');
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      
+      const monthRetro = astroData2026.retrogrades.filter(r => {
+        const startDate = new Date(r.start);
+        const endDate = new Date(r.end);
+        const startMonth = startDate.getMonth() + 1;
+        const endMonth = endDate.getMonth() + 1;
+        return (startMonth === month || endMonth === month || 
+                (startDate <= date && endDate >= date));
+      });
+      
+      if (monthRetro.length === 0) {
+        container.innerHTML = '<div class="empty-state-inline">🟢 本月无行星逆行，适合推进计划</div>';
+        loading.style.display = 'none';
+        container.style.display = 'block';
+        return;
+      }
+      
+      const impactMap = {
+        '水星': '沟通、合同、交通',
+        '金星': '感情、财务、审美',
+        '火星': '行动、冲突、欲望',
+        '木星': '扩张、信念、幸运',
+        '土星': '责任、结构、限制'
+      };
+      
+      let html = '';
+      monthRetro.forEach(r => {
+        const house = calculateHouse(sunSign, r.sign);
+        html += `
+          <div class="event-item">
+            <div class="event-header">
+              <span class="event-icon">🪐</span>
+              <span class="event-title">${r.planet}逆行于${r.sign}</span>
+              <span class="event-badge retrograde">逆行中</span>
+            </div>
+            <div class="event-details">
+              <div class="event-detail">
+                <strong>📅 逆行期</strong>
+                ${formatDateCN(r.start)} - ${formatDateCN(r.end)}
+              </div>
+              <div class="event-detail">
+                <strong>♈ 所在星座</strong>
+                ${r.sign}
+              </div>
+              <div class="event-detail">
+                <strong>🏠 影响宫位</strong>
+                第${house}宫 ${houseNames[house]}
+              </div>
+              <div class="event-detail">
+                <strong>⚠️ 影响领域</strong>
+                ${impactMap[r.planet] || '需要回顾调整的领域'}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+      loading.style.display = 'none';
+      container.style.display = 'flex';
+      container.style.flexDirection = 'column';
+    }
+    
+    // 4. 加载当月新月满月
+    function loadMonthMoonPhases(sunSign, date) {
+      const container = document.getElementById('moonList');
+      const loading = document.getElementById('moonLoading');
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      
+      const monthMoons = astroData2026.moonPhases.filter(m => {
+        const mDate = new Date(m.date);
+        return mDate.getFullYear() === year && mDate.getMonth() + 1 === month;
+      });
+      
+      let html = '';
+      monthMoons.forEach(m => {
+        const house = calculateHouse(sunSign, m.sign);
+        const eclipseBadge = m.isEclipse ? '<span style="color: #e74c3c;"> (食)</span>' : '';
+        html += `
+          <div class="moon-item">
+            <div class="moon-icon">${m.icon}</div>
+            <div class="moon-type">${m.type}${eclipseBadge}</div>
+            <div class="moon-sign">${m.sign} ${m.degree}</div>
+            <div class="moon-house">第${house}宫</div>
+            <div class="moon-date">${formatDateCN(m.date)}</div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html || '<div class="empty-state-inline">本月无新月满月记录</div>';
+      loading.style.display = 'none';
+      container.style.display = 'grid';
+    }
+    
+    // ========== 运势优先级系统 ==========
+    
+    // 加载运势优先级
+    async function loadFortunePriority() {
+      const sunSign = getSunSign();
+      const transitDate = getTransitDate();
+      const loadingSection = document.getElementById('priorityLoadingSection');
+      const priorityList = document.getElementById('fortunePriorityList');
+      
+      try {
+        const response = await fetch('/api/fortune-priority', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            natal_sun_sign: sunSign,
+            date: transitDate,
+            include_details: true
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          renderFortunePriority(priorityList, result.data);
+          loadingSection.style.display = 'none';
+          priorityList.style.display = 'flex';
+        } else {
+          throw new Error(result.error || 'Failed to load');
+        }
+      } catch (error) {
+        console.error('加载运势优先级失败:', error);
+        // 使用本地数据作为回退
+        loadLocalFortunePriority(sunSign, new Date(transitDate));
+      }
+    }
+    
+    // 渲染运势优先级列表
+    function renderFortunePriority(container, data) {
+      const { events, natal_sign, date } = data;
+      
+      if (!events || events.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state-inline">
+            <p>🌟 近期无重要天象影响</p>
+            <p style="font-size: 0.85rem; margin-top: 8px;">这是一个相对平稳的时期，适合稳步前进</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // 图标映射
+      const typeIcons = {
+        'eclipse': '🌑',
+        'retrograde': '🪐',
+        'moon_phase': '🌙',
+        'transit_aspect': '⭐'
+      };
+      
+      // 优先级标题
+      const priorityTitles = {
+        1: '最高优先级 - 重大转折',
+        2: '高优先级 - 重要调整',
+        3: '中等优先级 - 周期节点',
+        4: '日常关注 - 相位影响',
+        5: '参考提示 - 次要影响'
+      };
+      
+      let html = '';
+      
+      events.forEach((event, index) => {
+        const icon = typeIcons[event.type] || '✨';
+        const daysText = event.days_until === 0 ? '今天' : 
+                        event.days_until > 0 ? `${event.days_until}天后` : 
+                        `${Math.abs(event.days_until)}天前`;
+        
+        html += `
+          <div class="priority-item ${event.type}">
+            <div class="priority-header">
+              <span>${icon} ${event.title}</span>
+            </div>
+            
+            <div class="priority-meta">
+              ${event.house ? `<span class="priority-tag house">🏠 第${event.house}宫 ${event.house_name}</span>` : ''}
+              ${event.aspect_to_sun ? `<span class="priority-tag aspect">⭐ ${event.aspect_to_sun}</span>` : ''}
+              ${event.date ? `<span class="priority-tag date">📅 ${daysText}</span>` : ''}
+            </div>
+            
+            <div class="priority-impact">
+              ${event.impact}
+            </div>
+            
+            <div class="priority-advice">
+              💡 ${event.advice}
+            </div>
+            
+            ${event.reading ? `
+            <div class="priority-reading" style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.85rem; color: rgba(255,255,255,0.7); line-height: 1.5;">
+              ${event.reading.substring(0, 200)}${event.reading.length > 200 ? '...' : ''}
+            </div>
+            ` : ''}
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+    
+    // 本地运势优先级（API失败时的回退）
+    function loadLocalFortunePriority(sunSign, date) {
+      const loadingSection = document.getElementById('priorityLoadingSection');
+      const priorityList = document.getElementById('fortunePriorityList');
+      const month = date.getMonth() + 1;
+      
+      // 基于星座和月份生成优先级数据
+      let events = [];
+      
+      if (sunSign === '处女座' && month === 3) {
+        events = [
+          {
+            priority: 1,
+            type: 'eclipse',
+            title: '🌑 处女座月全食',
+            house: 1,
+            house_name: '命宫（自我、个性）',
+            aspect_to_sun: '合相',
+            days_until: 2,
+            impact: '重大转折点，自我形象、个人身份将发生深刻变化',
+            advice: '关注自我需求，重新定义个人目标',
+            reading: '这次月全食发生在你的命宫，标志着一个重要的个人转折点。你可能会感到内心的强烈呼唤，要求你重新审视自己的身份和人生方向。'
+          },
+          {
+            priority: 2,
+            type: 'retrograde',
+            title: '🪐 土星逆行于白羊座',
+            house: 8,
+            house_name: '疾厄宫（转化、共享资源）',
+            aspect_to_sun: '对分相',
+            days_until: 0,
+            impact: '责任、限制、结构进入回顾调整期',
+            advice: '耐心面对延迟，重新建立结构',
+            reading: '土星逆行在你的第8宫，要求你重新审视与他人的资源共享、债务或投资。这是一个处理深层恐惧和转化旧有模式的好时机。'
+          }
+        ];
+      } else if (sunSign === '白羊座' && month === 4) {
+        events = [
+          {
+            priority: 3,
+            type: 'moon_phase',
+            title: '🌑 白羊座新月',
+            house: 1,
+            house_name: '命宫（自我、个性）',
+            aspect_to_sun: '合相',
+            days_until: 10,
+            impact: '新的开始，适合在命宫启动计划',
+            advice: '设定意图，播种新的目标，开始新计划',
+            reading: '新月发生在你的星座，为你带来全新的开始。这是设定个人目标和启动新项目的最佳时机。'
+          }
+        ];
+      } else {
+        events = [
+          {
+            priority: 4,
+            type: 'transit_aspect',
+            title: '⭐ 木星三分相太阳',
+            house: 9,
+            house_name: '迁移宫（旅行、哲学）',
+            aspect_to_sun: '三分相',
+            days_until: 0,
+            impact: '木星能量与自我核心天赋支持，自然顺畅',
+            advice: '善用天赋，顺其自然，把握机会',
+            reading: '木星与你的太阳形成和谐相位，带来扩张和成长的机会。适合学习、旅行或探索新的哲学观点。'
+          }
+        ];
+      }
+      
+      renderFortunePriority(priorityList, { events, natal_sign: sunSign, date: date.toISOString().split('T')[0] });
+      loadingSection.style.display = 'none';
+      priorityList.style.display = 'flex';
+    }
+    
+    // 页面加载完成后自动加载
+    document.addEventListener('DOMContentLoaded', function() {
+      // 延迟一点执行，确保其他数据已加载
+      setTimeout(() => {
+        loadFortunePriority();
+        loadMonthlyAstroEvents();
+      }, 500);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>星盘计算</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="section">
+    <h1>星盘计算（本命 + 行运）</h1>
+
+    <form id="astrologyForm">
+      <div>
+        <label>姓名</label>
+        <input type="text" name="name" id="name" required>
+      </div>
+      <div>
+        <label>性别</label>
+        <select name="gender" id="gender" required>
+          <option value="">请选择</option>
+          <option>男</option><option>女</option>
+        </select>
+      </div>
+      <div>
+        <label>出生日期</label>
+        <input type="date" name="birthDate" id="birthDate" required>
+      </div>
+      <div>
+        <label>出生时间（本地时）</label>
+        <input type="time" name="birthTime" id="birthTime" required>
+      </div>
+
+      <div>
+        <label>出生地经纬度（示例：116:28E,39:54N 或 116.466,39.9）</label>
+        <input type="text" name="coordinates" id="coordinates" placeholder="经度,纬度" required>
+      </div>
+
+      <hr>
+      <div>
+        <label>查询（行运）日期</label>
+        <input type="date" name="transitDate" id="transitDate" required>
+      </div>
+      <div>
+        <label>查询（行运）时间</label>
+        <input type="time" name="transitTime" id="transitTime" required>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button type="submit">提交并计算</button>
+        <button type="reset">重置</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

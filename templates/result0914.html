@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>星盘结果</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="section">
+    <h1>计算结果</h1>
+
+    <h2>本命星盘（主要行星）</h2>
+    <table>
+      <thead><tr><th>行星</th><th>星座</th><th>宫位</th><th>度数</th></tr></thead>
+      <tbody>
+        {% for p,info in data['natal_chart'].items() %}
+          <tr>
+            <td>{{ p }}</td>
+            <td>{{ info['sign'] }}</td>
+            <td>{{ info['house'] }}</td>
+            <td>{{ info['degree'] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>行运星盘（行运行星映射到本命宫位）</h2>
+    <table>
+      <thead><tr><th>行星</th><th>星座</th><th>宫位（对应本命）</th><th>度数</th></tr></thead>
+      <tbody>
+        {% for p,info in data['transit_chart'].items() %}
+          <tr>
+            <td>{{ p }}</td>
+            <td>{{ info['sign'] }}</td>
+            <td>{{ info['house'] }}</td>
+            <td>{{ info['degree'] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>本命与行运间相位（紧密排列）</h2>
+    <table>
+      <thead><tr><th>本命行星</th><th>行运行星</th><th>相位</th><th>实际相差</th><th>偏差</th></tr></thead>
+      <tbody>
+        {% for a in data['aspects'] %}
+          <tr>
+            <td>{{ a['natal_planet'] }} ({{ a['natal_sign'] }})</td>
+            <td>{{ a['transit_planet'] }} ({{ a['transit_sign'] }})</td>
+            <td>{{ a['aspect_name'] }} ({{ a['aspect_degree'] }}°)</td>
+            <td>{{ a['actual_degree'] }}°</td>
+            <td>{{ a['deviation'] }}°</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>检索到的代表事件</h2>
+    <div>
+      <h3>本命太阳相关</h3>
+      <ul>
+        {% for it in data['events']['sun_sign'] %}
+          <li>{{ it }}</li>
+        {% endfor %}
+      </ul>
+      <h3>本命上升相关</h3>
+      <ul>
+        {% for it in data['events']['asc_sign'] %}
+          <li>{{ it }}</li>
+        {% endfor %}
+      </ul>
+
+      <h3>相位相关</h3>
+      <ul>
+        {% for item in data['events']['aspect_events'] %}
+          <li><strong>{{ item['query'] }}</strong>
+            <ul>
+              {% for e in item['events'] %}
+                <li>{{ e }}</li>
+              {% endfor %}
+            </ul>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div style="margin-top:20px;">
+      <a href="{{ url_for('index') }}">返回首页</a>
+    </div>
+  </div>
+</body>
+</html>
