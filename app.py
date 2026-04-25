@@ -10,8 +10,7 @@ from flask import Flask, render_template, request, jsonify, session, url_for, re
 # Swiss Ephemeris 专业星盘计算
 from swisseph_chart import (
     calculate_natal_chart_swisseph,
-    calculate_transit_chart_swisseph,
-    calculate_aspects_swisseph
+    calculate_transit_chart_swisseph
 )
 
 # 配置日志
@@ -40,7 +39,20 @@ PLANET_NAMES = {
     'sun': '太阳', 'moon': '月亮', 'mercury': '水星', 'venus': '金星',
     'mars': '火星', 'jupiter': '木星', 'saturn': '土星',
     'uranus': '天王星', 'neptune': '海王星', 'pluto': '冥王星',
-    'ascendant': '上升星座', 'mc': '天顶'
+    'ascendant': '上升星座', 'midheaven': '天顶', 'mc': '天顶'
+}
+
+# 主要相位及容许度
+ASPECTS = {
+    0: ('合相', 'conjunction'),
+    60: ('六分相', 'sextile'),
+    90: ('四分相', 'square'),
+    120: ('三分相', 'trine'),
+    180: ('对分相', 'opposition')
+}
+PLANET_ORBS = {
+    'sun': 7.5, 'moon': 6.0, 'mercury': 3.5, 'venus': 4.0, 'mars': 4.0,
+    'jupiter': 4.5, 'saturn': 4.5, 'uranus': 2.5, 'neptune': 2.5, 'pluto': 2.5
 }
 
 
@@ -67,8 +79,78 @@ def calculate_transit_chart(transit_dt, natal_chart, lon=116.4, lat=39.9):
 
 
 def calculate_aspects(natal, transit):
-    """使用 Swiss Ephemeris 计算相位"""
-    return calculate_aspects_swisseph(natal, transit)
+    """使用精确经度计算本命盘与行运盘的相位（避免大小写兼容问题）"""
+    aspects = []
+    target_planets = ['sun', 'moon', 'mercury', 'venus', 'mars',
+                      'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']
+    natal_planets = natal.get('planets', {})
+
+    # 本命行星 vs 行运行星
+    for n_planet in target_planets:
+        if n_planet not in natal_planets:
+            continue
+        for t_planet in target_planets:
+            if n_planet == t_planet or t_planet not in transit:
+                continue
+
+            lon_n = natal_planets[n_planet]['longitude']
+            lon_t = transit[t_planet]['longitude']
+            diff = abs(lon_n - lon_t)
+            diff = min(diff, 360 - diff)
+
+            max_orb = (PLANET_ORBS.get(n_planet, 2.5) + PLANET_ORBS.get(t_planet, 2.5)) / 2.0
+
+            for degree, (aspect_name, aspect_type) in ASPECTS.items():
+                deviation = abs(diff - degree)
+                if deviation <= max_orb:
+                    aspects.append({
+                        'natal_planet': n_planet,
+                        'natal_planet_zh': PLANET_NAMES.get(n_planet, n_planet),
+                        'transit_planet': t_planet,
+                        'transit_planet_zh': PLANET_NAMES.get(t_planet, t_planet),
+                        'aspect_degree': degree,
+                        'actual_degree': round(diff, 4),
+                        'aspect_name': aspect_name,
+                        'aspect_type': aspect_type,
+                        'deviation': round(deviation, 4),
+                        'natal_sign': natal_planets[n_planet]['sign'],
+                        'natal_sign_zh': natal_planets[n_planet].get('sign_zh', ''),
+                        'transit_sign': transit[t_planet]['sign'],
+                        'transit_sign_zh': transit[t_planet].get('sign_zh', ''),
+                        'transit_house': transit[t_planet]['house']
+                    })
+
+    # 上升星座与行运行星的相位
+    if 'ascendant' in natal_planets:
+        asc_lon = natal_planets['ascendant']['longitude']
+        for t_planet in target_planets:
+            if t_planet not in transit:
+                continue
+            lon_t = transit[t_planet]['longitude']
+            diff = abs(asc_lon - lon_t)
+            diff = min(diff, 360 - diff)
+            max_orb = PLANET_ORBS.get(t_planet, 2.5)
+            for degree, (aspect_name, aspect_type) in ASPECTS.items():
+                deviation = abs(diff - degree)
+                if deviation <= max_orb:
+                    aspects.append({
+                        'natal_planet': 'ascendant',
+                        'natal_planet_zh': '上升星座',
+                        'transit_planet': t_planet,
+                        'transit_planet_zh': PLANET_NAMES.get(t_planet, t_planet),
+                        'aspect_degree': degree,
+                        'actual_degree': round(diff, 4),
+                        'aspect_name': aspect_name,
+                        'aspect_type': aspect_type,
+                        'deviation': round(deviation, 4),
+                        'natal_sign': natal_planets['ascendant']['sign'],
+                        'natal_sign_zh': natal_planets['ascendant'].get('sign_zh', ''),
+                        'transit_sign': transit[t_planet]['sign'],
+                        'transit_sign_zh': transit[t_planet].get('sign_zh', ''),
+                        'transit_house': transit[t_planet]['house']
+                    })
+
+    return aspects
 
 
 def compute_all(data):
