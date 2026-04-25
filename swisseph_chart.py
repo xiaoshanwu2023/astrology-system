@@ -104,12 +104,12 @@ def calculate_natal_chart_swisseph(birth_dt: datetime, lon: float = 116.4, lat: 
     cusps = houses[0]
     ascmc = houses[1]
 
-    # 12 宫头
+    # 12 宫头 (pyswisseph: cusps[0..11] 对应 1..12宫)
     house_cusps = []
-    for i in range(1, 13):
+    for i in range(12):
         lon_cusp = cusps[i]
         sign_cusp, deg_cusp = longitude_to_sign(lon_cusp)
-        house_cusps.append((i, lon_cusp))
+        house_cusps.append((i + 1, lon_cusp))
 
     # 上升点
     asc_lon = ascmc[0]
