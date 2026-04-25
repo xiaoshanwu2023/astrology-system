@@ -1,28 +1,11 @@
-"""
-Swiss Ephemeris 封装模块
-通过调用 swetest CLI 实现专业级星盘计算
-"""
-
-import subprocess
-import re
-import os
+import math
+import swisseph as swe
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple
 
-# Swiss Ephemeris 可执行文件路径
-# 首先尝试项目目录，然后是环境变量，最后是默认路径
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_SWETEST = os.path.join(BASE_DIR, 'swetest')
-if os.path.exists(PROJECT_SWETEST):
-    SWETEST_PATH = PROJECT_SWETEST
-else:
-    SWETEST_PATH = os.environ.get('SWETEST_PATH', '/tmp/swisseph/swetest')
-
-# 星座映射
-SIGNS = [
-    'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-]
+# 星座数据
+SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+         'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
 
 SIGNS_ZH = {
     'Aries': '白羊座', 'Taurus': '金牛座', 'Gemini': '双子座',
@@ -38,7 +21,6 @@ PLANET_NAMES = {
     'ascendant': '上升星座', 'midheaven': '天顶'
 }
 
-# 主要相位
 MAJOR_ASPECTS = {
     0: ('合相', 'conjunction'),
     60: ('六合相', 'sextile'),
@@ -47,408 +29,173 @@ MAJOR_ASPECTS = {
     180: ('对冲', 'opposition')
 }
 
-# 行星容许度
 PLANET_ORBS = {
     'sun': 7.5, 'moon': 6.0, 'mercury': 3.5, 'venus': 4.0, 'mars': 4.0,
     'jupiter': 4.5, 'saturn': 4.5, 'uranus': 2.5, 'neptune': 2.5, 'pluto': 2.5
 }
 
+PLANET_IDS = {
+    'sun': swe.SUN,
+    'moon': swe.MOON,
+    'mercury': swe.MERCURY,
+    'venus': swe.VENUS,
+    'mars': swe.MARS,
+    'jupiter': swe.JUPITER,
+    'saturn': swe.SATURN,
+    'uranus': swe.URANUS,
+    'neptune': swe.NEPTUNE,
+    'pluto': swe.PLUTO,
+}
+
+
+def _jd(birth_dt: datetime) -> float:
+    """datetime -> 儒略日"""
+    return swe.julday(
+        birth_dt.year,
+        birth_dt.month,
+        birth_dt.day,
+        birth_dt.hour + birth_dt.minute / 60.0 + birth_dt.second / 3600.0
+    )
+
 
 def longitude_to_sign(longitude: float) -> Tuple[str, float]:
-    """将黄经转换为星座和度数"""
+    """将黄经转换为星座和度数（保留首字母大写，供 app.py 统一转小写）"""
     sign_idx = int(longitude / 30) % 12
-    degree = longitude % 30
-    return SIGNS[sign_idx], round(degree, 2)
-
-
-def parse_dms(dms_str: str) -> float:
-    """解析度分秒字符串为度数"""
-    # 格式: 275°20'20.8283 或 275°20' 0.2577
-    # 也可能有前导空格
-    dms_str = dms_str.strip()
-    match = re.match(r'(\d+)°\s*(\d+)\'\s*([\d.]+)', dms_str)
-    if match:
-        deg, minute, sec = match.groups()
-        return float(deg) + float(minute) / 60 + float(sec) / 3600
-    return 0.0
-
-
-def run_swetest(args: List[str]) -> str:
-    """运行 swetest 命令并返回输出"""
-    cmd = [SWETEST_PATH] + args
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        return result.stdout
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("Swiss Ephemeris 计算超时")
-    except FileNotFoundError:
-        raise RuntimeError(f"Swiss Ephemeris 未找到: {SWETEST_PATH}")
-    except Exception as e:
-        raise RuntimeError(f"Swiss Ephemeris 运行错误: {e}")
-
-
-def calculate_natal_chart_swisseph(birth_dt: datetime, lon: float, lat: float) -> Dict:
-    """
-    计算本命盘
-    
-    Args:
-        birth_dt: 出生日期时间 (UTC)
-        lon: 经度
-        lat: 纬度
-    
-    Returns:
-        包含行星位置和宫位信息的字典
-    """
-    # 格式化日期和时间
-    day = birth_dt.day
-    month = birth_dt.month
-    year = birth_dt.year
-    hour = birth_dt.hour
-    minute = birth_dt.minute
-    
-    # 构建命令参数
-    args = [
-        f'-b{day}.{month}.{year}',
-        f'-ut{hour}:{minute:02d}',
-        f'-geopos{lon},{lat},0',
-        f'-house{lon},{lat},P',  # P = Placidus 宫位系统
-        '-head'
-    ]
-    
-    output = run_swetest(args)
-    
-    # 解析输出
-    planets = {}
-    
-    for line in output.split('\n'):
-        line = line.strip()
-        
-        # 解析行星位置 - 使用正则表达式更灵活地匹配
-        if line.startswith('Sun '):
-            match = re.search(r'Sun\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon)
-                planets['sun'] = {'sign': sign, 'degree': degree, 'longitude': round(lon, 2), 'house': 0}
-        elif line.startswith('Moon '):
-            match = re.search(r'Moon\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon)
-                planets['moon'] = {'sign': sign, 'degree': degree, 'longitude': round(lon, 2), 'house': 0}
-        elif line.startswith('Mercury '):
-            match = re.search(r'Mercury\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon)
-                planets['mercury'] = {'sign': sign, 'degree': degree, 'longitude': round(lon, 2), 'house': 0}
-        elif line.startswith('Venus '):
-            match = re.search(r'Venus\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon)
-                planets['venus'] = {'sign': sign, 'degree': degree, 'longitude': round(lon, 2), 'house': 0}
-        elif line.startswith('Mars '):
-            match = re.search(r'Mars\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon)
-                planets['mars'] = {'sign': sign, 'degree': degree, 'longitude': round(lon, 2), 'house': 0}
-        elif line.startswith('Jupiter '):
-            match = re.search(r'Jupiter\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon)
-                planets['jupiter'] = {'sign': sign, 'degree': degree, 'longitude': round(lon, 2), 'house': 0}
-        elif line.startswith('Saturn '):
-            match = re.search(r'Saturn\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon)
-                planets['saturn'] = {'sign': sign, 'degree': degree, 'longitude': round(lon, 2), 'house': 0}
-        elif line.startswith('Uranus '):
-            match = re.search(r'Uranus\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon)
-                planets['uranus'] = {'sign': sign, 'degree': degree, 'longitude': round(lon, 2), 'house': 0}
-        elif line.startswith('Neptune '):
-            match = re.search(r'Neptune\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon)
-                planets['neptune'] = {'sign': sign, 'degree': degree, 'longitude': round(lon, 2), 'house': 0}
-        elif line.startswith('Pluto '):
-            match = re.search(r'Pluto\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon)
-                planets['pluto'] = {'sign': sign, 'degree': degree, 'longitude': round(lon, 2), 'house': 0}
-        
-        # 解析宫位和上升星座
-        elif line.startswith('house  1 '):
-            match = re.search(r'house\s+1\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                house_1_lon = parse_dms(match.group(1))
-                house_1_sign, house_1_degree = longitude_to_sign(house_1_lon)
-                planets['ascendant'] = {'sign': house_1_sign, 'degree': house_1_degree, 
-                                       'longitude': round(house_1_lon, 2), 'house': 1}
-        elif line.startswith('house 10 '):
-            match = re.search(r'house\s+10\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                house_10_lon = parse_dms(match.group(1))
-                house_10_sign, house_10_degree = longitude_to_sign(house_10_lon)
-                planets['midheaven'] = {'sign': house_10_sign, 'degree': house_10_degree,
-                                       'longitude': round(house_10_lon, 2), 'house': 10}
-        elif line.startswith('Ascendant'):
-            match = re.search(r'Ascendant\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                asc_lon = parse_dms(match.group(1))
-                asc_sign, asc_degree = longitude_to_sign(asc_lon)
-                planets['ascendant'] = {'sign': asc_sign, 'degree': asc_degree,
-                                       'longitude': round(asc_lon, 2), 'house': 1}
-        elif line.startswith('MC '):
-            match = re.search(r'MC\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                mc_lon = parse_dms(match.group(1))
-                mc_sign, mc_degree = longitude_to_sign(mc_lon)
-                planets['midheaven'] = {'sign': mc_sign, 'degree': mc_degree,
-                                       'longitude': round(mc_lon, 2), 'house': 10}
-    
-    # 计算每个行星所在的宫位
-    house_cusps = []
-    for line in output.split('\n'):
-        line = line.strip()
-        if line.startswith('house '):
-            # 使用正则表达式更灵活地匹配
-            # 格式: house  1         275°20'20.8283  345°20' 0.5213
-            match = re.search(r'house\s+(\d+)\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                try:
-                    house_num = int(match.group(1))
-                    house_lon = parse_dms(match.group(2))
-                    house_cusps.append((house_num, house_lon))
-                except Exception as e:
-                    print(f"[WARN] 解析宫位失败: {line}, 错误: {e}")
-                    pass
-    
-    # 确保有12个宫位
-    if len(house_cusps) != 12:
-        print(f"[WARN] 宫位数据不完整: {len(house_cusps)}个宫位，使用默认值")
-        # 使用上升点作为第1宫，每30度一个宫（等宫制）
-        asc_lon = planets.get('ascendant', {}).get('longitude', 0)
-        house_cusps = [(i, (asc_lon + (i-1) * 30) % 360) for i in range(1, 13)]
-    
-    # 为每个行星分配宫位
-    for planet_name, planet_data in planets.items():
-        if planet_name in ['ascendant', 'midheaven']:
-            continue
-        planet_lon = planet_data['longitude']
-        planet_data['house'] = get_house_for_longitude(planet_lon, house_cusps)
-    
-    # 将宫位信息也返回，供行运盘计算使用
-    return {'planets': planets, 'house_cusps': house_cusps}
+    degree = round(longitude % 30, 2)
+    return (SIGNS[sign_idx], degree)
 
 
 def get_house_for_longitude(longitude: float, house_cusps: List[Tuple[int, float]]) -> int:
-    """根据经度确定宫位
-    
-    参数:
-        longitude: 行星黄经 (0-360)
-        house_cusps: 宫位列表 [(宫位号, 宫位起点黄经), ...]
-    
-    返回:
-        宫位号 (1-12)
-    """
-    if not house_cusps:
-        return 1
-    
-    # 确保宫位数据完整 (12个宫位)
-    if len(house_cusps) < 12:
-        # 如果数据不完整，使用上升点作为第1宫起点，每30度一个宫（简化）
-        asc_lon = next((lon for num, lon in house_cusps if num == 1), 0)
-        house_cusps = [(i, (asc_lon + (i-1) * 30) % 360) for i in range(1, 13)]
-    
-    # 按黄经排序宫位
-    sorted_houses = sorted(house_cusps, key=lambda x: x[1])
-    
-    # 将经度归一化到 0-360
-    lon = longitude % 360
-    
-    # 查找行星落入哪个宫位
-    for i in range(len(sorted_houses)):
-        current_house = sorted_houses[i]
-        next_house = sorted_houses[(i + 1) % len(sorted_houses)]
-        
-        current_lon = current_house[1] % 360
-        next_lon = next_house[1] % 360
-        
-        # 判断行星是否在当前宫位范围内
-        if current_lon <= next_lon:
-            # 正常情况 (不跨0度)
-            if current_lon <= lon < next_lon:
-                return current_house[0]
+    """根据经度查找所在宫位"""
+    for i in range(len(house_cusps) - 1):
+        h1, c1 = house_cusps[i]
+        h2, c2 = house_cusps[i + 1]
+        # 处理跨越 0° 的情况
+        if c2 < c1:
+            if longitude >= c1 or longitude < c2:
+                return h1
         else:
-            # 跨0度情况 (如宫位7在350°, 宫位8在20°)
-            if lon >= current_lon or lon < next_lon:
-                return current_house[0]
-    
-    # 默认返回第1宫
-    return 1
-    
-    return 1
+            if c1 <= longitude < c2:
+                return h1
+    return house_cusps[-1][0] if house_cusps else 1
 
 
-def calculate_transit_chart_swisseph(transit_dt: datetime, natal_chart: Dict, 
+def calculate_natal_chart_swisseph(birth_dt: datetime, lon: float = 116.4, lat: float = 39.9) -> Dict:
+    """
+    使用 pyswisseph 计算本命盘
+    """
+    jd = _jd(birth_dt)
+    planets = {}
+
+    # 10 大行星
+    for name, pid in PLANET_IDS.items():
+        res = swe.calc(jd, pid)
+        longitude = res[0][0]
+        sign, degree = longitude_to_sign(longitude)
+        planets[name] = {
+            'sign': sign,
+            'degree': degree,
+            'longitude': round(longitude, 2),
+            'house': 0
+        }
+
+    # 宫位（Placidus 系统）
+    houses = swe.houses(jd, lat, lon, b'P')
+    cusps = houses[0]
+    ascmc = houses[1]
+
+    # 12 宫头
+    house_cusps = []
+    for i in range(1, 13):
+        lon_cusp = cusps[i]
+        sign_cusp, deg_cusp = longitude_to_sign(lon_cusp)
+        house_cusps.append((i, lon_cusp))
+
+    # 上升点
+    asc_lon = ascmc[0]
+    asc_sign, asc_degree = longitude_to_sign(asc_lon)
+    planets['ascendant'] = {
+        'sign': asc_sign,
+        'degree': asc_degree,
+        'longitude': round(asc_lon, 2),
+        'house': 1
+    }
+
+    # 天顶
+    mc_lon = ascmc[1]
+    mc_sign, mc_degree = longitude_to_sign(mc_lon)
+    planets['midheaven'] = {
+        'sign': mc_sign,
+        'degree': mc_degree,
+        'longitude': round(mc_lon, 2),
+        'house': 10
+    }
+
+    # 计算每个行星所在宫位
+    for name, data in planets.items():
+        if name not in ('ascendant', 'midheaven'):
+            data['house'] = get_house_for_longitude(data['longitude'], house_cusps)
+
+    return {
+        'planets': planets,
+        'houses': house_cusps,
+        'calculation_method': 'swisseph'
+    }
+
+
+def calculate_transit_chart_swisseph(transit_dt: datetime, natal_chart: Dict,
                                      lon: float = 116.4, lat: float = 39.9) -> Dict:
     """
-    计算行运盘
-    
-    Args:
-        transit_dt: 行运日期时间 (UTC)
-        natal_chart: 本命盘数据（用于计算宫位）
-        lon: 经度
-        lat: 纬度
-    
-    Returns:
-        包含行运行星位置的字典
+    使用 pyswisseph 计算行运盘
     """
-    # 格式化日期和时间
-    day = transit_dt.day
-    month = transit_dt.month
-    year = transit_dt.year
-    hour = transit_dt.hour
-    minute = transit_dt.minute
-    
-    # 构建命令参数
-    args = [
-        f'-b{day}.{month}.{year}',
-        f'-ut{hour}:{minute:02d}',
-        f'-geopos{lon},{lat},0',
-        '-head'
-    ]
-    
-    output = run_swetest(args)
-    
-    # 解析输出
-    planets = {}
-    
-    for line in output.split('\n'):
-        line = line.strip()
-        
-        if line.startswith('Sun '):
-            match = re.search(r'Sun\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon_val = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon_val)
-                planets['sun'] = {'sign': sign, 'degree': degree, 'longitude': round(lon_val, 2), 'house': 0}
-        elif line.startswith('Moon '):
-            match = re.search(r'Moon\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon_val = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon_val)
-                planets['moon'] = {'sign': sign, 'degree': degree, 'longitude': round(lon_val, 2), 'house': 0}
-        elif line.startswith('Mercury '):
-            match = re.search(r'Mercury\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon_val = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon_val)
-                planets['mercury'] = {'sign': sign, 'degree': degree, 'longitude': round(lon_val, 2), 'house': 0}
-        elif line.startswith('Venus '):
-            match = re.search(r'Venus\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon_val = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon_val)
-                planets['venus'] = {'sign': sign, 'degree': degree, 'longitude': round(lon_val, 2), 'house': 0}
-        elif line.startswith('Mars '):
-            match = re.search(r'Mars\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon_val = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon_val)
-                planets['mars'] = {'sign': sign, 'degree': degree, 'longitude': round(lon_val, 2), 'house': 0}
-        elif line.startswith('Jupiter '):
-            match = re.search(r'Jupiter\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon_val = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon_val)
-                planets['jupiter'] = {'sign': sign, 'degree': degree, 'longitude': round(lon_val, 2), 'house': 0}
-        elif line.startswith('Saturn '):
-            match = re.search(r'Saturn\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon_val = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon_val)
-                planets['saturn'] = {'sign': sign, 'degree': degree, 'longitude': round(lon_val, 2), 'house': 0}
-        elif line.startswith('Uranus '):
-            match = re.search(r'Uranus\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon_val = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon_val)
-                planets['uranus'] = {'sign': sign, 'degree': degree, 'longitude': round(lon_val, 2), 'house': 0}
-        elif line.startswith('Neptune '):
-            match = re.search(r'Neptune\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon_val = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon_val)
-                planets['neptune'] = {'sign': sign, 'degree': degree, 'longitude': round(lon_val, 2), 'house': 0}
-        elif line.startswith('Pluto '):
-            match = re.search(r'Pluto\s+(\d+°[\d\'\.\s]+)', line)
-            if match:
-                lon_val = parse_dms(match.group(1))
-                sign, degree = longitude_to_sign(lon_val)
-                planets['pluto'] = {'sign': sign, 'degree': degree, 'longitude': round(lon_val, 2), 'house': 0}
-    
-    # 计算行运行星落入本命盘的哪个宫位
-    # 使用本命盘的宫位信息（house_cusps）
-    natal_house_cusps = natal_chart.get('house_cusps', [])
-    
-    if natal_house_cusps:
-        for planet_name, planet_data in planets.items():
-            planet_lon = planet_data['longitude']
-            planet_data['house'] = get_house_for_longitude(planet_lon, natal_house_cusps)
-    else:
-        # 如果没有宫位信息，默认设为1宫
-        for planet_name, planet_data in planets.items():
-            planet_data['house'] = 1
-    
-    return planets
+    jd = _jd(transit_dt)
+    transit = {}
+
+    for name, pid in PLANET_IDS.items():
+        res = swe.calc(jd, pid)
+        longitude = res[0][0]
+        sign, degree = longitude_to_sign(longitude)
+        transit[name] = {
+            'sign': sign,
+            'degree': degree,
+            'longitude': round(longitude, 2),
+            'house': 0
+        }
+
+    # 行运行星所在宫位（使用本命盘宫位系统）
+    house_cusps = natal_chart.get('houses', [])
+    for name, data in transit.items():
+        data['house'] = get_house_for_longitude(data['longitude'], house_cusps)
+
+    return transit
 
 
 def calculate_aspects_swisseph(natal_result: Dict, transit_result: Dict) -> List[Dict]:
     """
     计算本命盘与行运盘的相位
-    
-    Args:
-        natal_result: 本命盘数据
-        transit_result: 行运盘数据
-    
-    Returns:
-        相位列表
     """
     aspects = []
     target_planets = ['sun', 'moon', 'mercury', 'venus', 'mars',
                       'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']
-    
     natal_planets = natal_result.get('planets', {})
-    
+
+    # 本命行星 vs 行运行星
     for n_planet in target_planets:
         if n_planet not in natal_planets:
             continue
         for t_planet in target_planets:
             if n_planet == t_planet or t_planet not in transit_result:
                 continue
-            
+
             lon_n = natal_planets[n_planet]['longitude']
             lon_t = transit_result[t_planet]['longitude']
-            
             diff = abs(lon_n - lon_t)
             diff = min(diff, 360 - diff)
-            
+
+            max_orb = (PLANET_ORBS.get(n_planet, 2.5) + PLANET_ORBS.get(t_planet, 2.5)) / 2.0
+
             for degree, (aspect_name, aspect_type) in MAJOR_ASPECTS.items():
-                orb_n = PLANET_ORBS.get(n_planet, 2.5)
-                orb_t = PLANET_ORBS.get(t_planet, 2.5)
-                max_orb = (orb_n + orb_t) / 2.0
                 deviation = abs(diff - degree)
-                
                 if deviation <= max_orb:
                     aspects.append({
                         'natal_planet': n_planet,
@@ -466,24 +213,23 @@ def calculate_aspects_swisseph(natal_result: Dict, transit_result: Dict) -> List
                         'transit_sign_zh': SIGNS_ZH[transit_result[t_planet]['sign']],
                         'transit_house': transit_result[t_planet]['house']
                     })
-    
-    # 添加上升星座与行运行星的相位
+
+    # 上升星座与行运行星的相位
     if 'ascendant' in natal_planets:
         asc_lon = natal_planets['ascendant']['longitude']
         asc_sign = natal_planets['ascendant']['sign']
-        
+
         for t_planet in target_planets:
             if t_planet not in transit_result:
                 continue
-            
+
             lon_t = transit_result[t_planet]['longitude']
             diff = abs(asc_lon - lon_t)
             diff = min(diff, 360 - diff)
-            
+
             for degree, (aspect_name, aspect_type) in MAJOR_ASPECTS.items():
                 max_orb = PLANET_ORBS.get(t_planet, 2.5)
                 deviation = abs(diff - degree)
-                
                 if deviation <= max_orb:
                     aspects.append({
                         'natal_planet': 'ascendant',
@@ -500,45 +246,18 @@ def calculate_aspects_swisseph(natal_result: Dict, transit_result: Dict) -> List
                         'transit_sign': transit_result[t_planet]['sign'],
                         'transit_sign_zh': SIGNS_ZH[transit_result[t_planet]['sign']],
                         'transit_house': transit_result[t_planet]['house'],
-                        'is_ascendant_aspect': True  # 标记为上升星座相位
+                        'is_ascendant_aspect': True
                     })
-    
+
     # 按紧密度排序
     aspects.sort(key=lambda x: x['deviation'])
     return aspects
 
 
-# 测试函数
 if __name__ == '__main__':
-    # 测试本命盘计算
     birth_dt = datetime(1990, 5, 15, 14, 30, 0)
-    print("=" * 50)
-    print("测试本命盘计算")
-    print("=" * 50)
-    
     natal = calculate_natal_chart_swisseph(birth_dt, 116.4, 39.9)
-    print("\n【本命盘】")
-    for planet, data in natal['planets'].items():
-        print(f"{planet}: {data['sign']} {data['degree']}° (宫位: {data.get('house', '-')})")
-    
-    # 测试行运盘计算
-    transit_dt = datetime(2024, 3, 27, 10, 0, 0)
-    print("\n" + "=" * 50)
-    print("测试行运盘计算")
-    print("=" * 50)
-    
-    transit = calculate_transit_chart_swisseph(transit_dt, natal, 116.4, 39.9)
-    print("\n【行运盘】")
-    for planet, data in transit.items():
-        print(f"{planet}: {data['sign']} {data['degree']}° (宫位: {data.get('house', '-')})")
-    
-    # 测试相位计算
-    print("\n" + "=" * 50)
-    print("测试相位计算")
-    print("=" * 50)
-    
-    aspects = calculate_aspects_swisseph(natal, transit)
-    print(f"\n找到 {len(aspects)} 个相位:")
-    for aspect in aspects[:10]:  # 只显示前10个
-        print(f"{aspect['natal_planet_zh']} {aspect['aspect_name']} {aspect['transit_planet_zh']} "
-              f"(偏差: {aspect['deviation']}°)")
+    print("本命盘：")
+    for p, d in natal['planets'].items():
+        print(f"  {p}: {d['sign']} {d['degree']}° (宫位{d['house']})")
+    print(f"宫位：{natal['houses']}")
