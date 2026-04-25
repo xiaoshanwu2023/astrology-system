@@ -75,14 +75,14 @@ def _add_display_fields(planets):
 
 def calculate_natal_chart(birth_dt, lon=116.4, lat=39.9):
     """使用 Swiss Ephemeris 计算本命盘"""
-    result = calculate_natal_chart_swisseph(birth_dt, lon, lat)
+    result = calculate_natal_chart_swisseph(birth_dt, lon, lat, timezone_offset=8.0)
     _add_display_fields(result['planets'])
     return result
 
 
 def calculate_transit_chart(transit_dt, natal_chart, lon=116.4, lat=39.9):
     """使用 Swiss Ephemeris 计算行运盘"""
-    transit = calculate_transit_chart_swisseph(transit_dt, natal_chart, lon, lat)
+    transit = calculate_transit_chart_swisseph(transit_dt, natal_chart, lon, lat, timezone_offset=8.0)
     _add_display_fields(transit)
     return transit
 
@@ -294,6 +294,21 @@ def health_check():
 
 # WSGI 入口
 application = app
+
+# 注册增强 API 路由（运势解读等）
+try:
+    from enhanced_api_routes import create_enhanced_routes
+    create_enhanced_routes(app)
+    logger.info("增强 API 路由已注册")
+except Exception as e:
+    logger.warning(f"增强 API 路由注册失败: {e}")
+
+try:
+    from fortune_priority_system import create_priority_routes
+    create_priority_routes(app)
+    logger.info("优先级路由已注册")
+except Exception as e:
+    logger.warning(f"优先级路由注册失败: {e}")
 
 if __name__ == '__main__':
     # 开发环境使用，生产环境使用 Gunicorn

@@ -48,13 +48,24 @@ PLANET_IDS = {
 }
 
 
-def _jd(birth_dt: datetime) -> float:
-    """datetime -> 儒略日"""
+def _jd(birth_dt: datetime, timezone_offset: float = 8.0) -> float:
+    """datetime -> 儒略日（本地时间转换为 UT）"""
+    total_hours = birth_dt.hour + birth_dt.minute / 60.0 + birth_dt.second / 3600.0
+    ut_hours = total_hours - timezone_offset
+
+    # 处理跨天
+    day_offset = 0
+    while ut_hours < 0:
+        ut_hours += 24
+        day_offset -= 1
+
+    ut_dt = birth_dt + timedelta(days=day_offset)
+
     return swe.julday(
-        birth_dt.year,
-        birth_dt.month,
-        birth_dt.day,
-        birth_dt.hour + birth_dt.minute / 60.0 + birth_dt.second / 3600.0
+        ut_dt.year,
+        ut_dt.month,
+        ut_dt.day,
+        ut_hours
     )
 
 
@@ -80,11 +91,12 @@ def get_house_for_longitude(longitude: float, house_cusps: List[Tuple[int, float
     return house_cusps[-1][0] if house_cusps else 1
 
 
-def calculate_natal_chart_swisseph(birth_dt: datetime, lon: float = 116.4, lat: float = 39.9) -> Dict:
+def calculate_natal_chart_swisseph(birth_dt: datetime, lon: float = 116.4,
+                                    lat: float = 39.9, timezone_offset: float = 8.0) -> Dict:
     """
     使用 pyswisseph 计算本命盘
     """
-    jd = _jd(birth_dt)
+    jd = _jd(birth_dt, timezone_offset)
     planets = {}
 
     # 10 大行星
@@ -144,11 +156,12 @@ def calculate_natal_chart_swisseph(birth_dt: datetime, lon: float = 116.4, lat: 
 
 
 def calculate_transit_chart_swisseph(transit_dt: datetime, natal_chart: Dict,
-                                     lon: float = 116.4, lat: float = 39.9) -> Dict:
+                                     lon: float = 116.4, lat: float = 39.9,
+                                     timezone_offset: float = 8.0) -> Dict:
     """
     使用 pyswisseph 计算行运盘
     """
-    jd = _jd(transit_dt)
+    jd = _jd(transit_dt, timezone_offset)
     transit = {}
 
     for name, pid in PLANET_IDS.items():

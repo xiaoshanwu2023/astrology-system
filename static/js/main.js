@@ -11,13 +11,15 @@ document.addEventListener('DOMContentLoaded', function() {
       gender: fd.get('gender'),
       birthDate: fd.get('birthDate'),
       birthTime: fd.get('birthTime'),
+      province: fd.get('province'),
+      city: fd.get('city'),
       coordinates: fd.get('coordinates'),
       transitDate: fd.get('transitDate'),
       transitTime: fd.get('transitTime')
     };
 
     // 验证
-    for (const k of ['name','birthDate','birthTime','coordinates','transitDate','transitTime']) {
+    for (const k of ['name','birthDate','birthTime','province','city','coordinates','transitDate','transitTime']) {
       if (!payload[k]) {
         alert('请填写所有必填项：' + k);
         return;

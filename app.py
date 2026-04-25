@@ -66,14 +66,14 @@ def _add_display_fields(planets):
 
 def calculate_natal_chart(birth_dt, lon=116.4, lat=39.9):
     """使用 Swiss Ephemeris 计算本命盘"""
-    result = calculate_natal_chart_swisseph(birth_dt, lon, lat)
+    result = calculate_natal_chart_swisseph(birth_dt, lon, lat, timezone_offset=8.0)
     _add_display_fields(result['planets'])
     return result
 
 
 def calculate_transit_chart(transit_dt, natal_chart, lon=116.4, lat=39.9):
     """使用 Swiss Ephemeris 计算行运盘"""
-    transit = calculate_transit_chart_swisseph(transit_dt, natal_chart, lon, lat)
+    transit = calculate_transit_chart_swisseph(transit_dt, natal_chart, lon, lat, timezone_offset=8.0)
     _add_display_fields(transit)
     return transit
 
