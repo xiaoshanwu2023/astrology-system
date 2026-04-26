@@ -64,16 +64,16 @@ def _add_display_fields(planets):
         p['sign_zh'] = SIGNS_ZH.get(p['sign'], p['sign'])
 
 
-def calculate_natal_chart(birth_dt, lon=116.4, lat=39.9):
+def calculate_natal_chart(birth_dt, lon=116.4, lat=39.9, timezone_offset=8.0):
     """使用 Swiss Ephemeris 计算本命盘"""
-    result = calculate_natal_chart_swisseph(birth_dt, lon, lat, timezone_offset=8.0)
+    result = calculate_natal_chart_swisseph(birth_dt, lon, lat, timezone_offset)
     _add_display_fields(result['planets'])
     return result
 
 
-def calculate_transit_chart(transit_dt, natal_chart, lon=116.4, lat=39.9):
+def calculate_transit_chart(transit_dt, natal_chart, lon=116.4, lat=39.9, timezone_offset=8.0):
     """使用 Swiss Ephemeris 计算行运盘"""
-    transit = calculate_transit_chart_swisseph(transit_dt, natal_chart, lon, lat, timezone_offset=8.0)
+    transit = calculate_transit_chart_swisseph(transit_dt, natal_chart, lon, lat, timezone_offset)
     _add_display_fields(transit)
     return transit
 
@@ -164,9 +164,23 @@ def compute_all(data):
     transit_time = datetime.strptime(data['transitTime'], '%H:%M').time()
     transit_dt = datetime.combine(transit_date, transit_time)
 
+    # 解析时区（默认北京时间 +8）
+    timezone_offset = float(data.get('timezone', 8.0))
+
+    # 解析坐标（默认北京）
+    lon, lat = 116.4, 39.9
+    coordinates = data.get('coordinates', '')
+    if coordinates:
+        try:
+            lon_str, lat_str = coordinates.split(',')
+            lon = float(lon_str.strip())
+            lat = float(lat_str.strip())
+        except (ValueError, IndexError):
+            pass
+
     # 计算星盘
-    natal = calculate_natal_chart(birth_dt)
-    transit = calculate_transit_chart(transit_dt, natal)
+    natal = calculate_natal_chart(birth_dt, lon, lat, timezone_offset)
+    transit = calculate_transit_chart(transit_dt, natal, lon, lat, timezone_offset)
     aspects = calculate_aspects(natal, transit)
 
     # 构建用户信息
@@ -276,6 +290,151 @@ def result_page():
         logger.exception("Error rendering result page")
         return render_template('error.html', error_message='显示结果时出错，请重试'), 500
 
+
+
+
+# ==================== 增强版 API 路由 ====================
+
+@app.route('/api/enhanced/test', methods=['GET'])
+def enhanced_test():
+    """测试增强版 API 是否正常工作"""
+    return jsonify({
+        'success': True,
+        'message': '增强版 API 正常工作',
+        'endpoints': [
+            '/api/enhanced/test',
+            '/api/retrograde-info',
+            '/api/eclipse-info',
+            '/api/comprehensive-fortune'
+        ]
+    })
+
+
+@app.route('/api/retrograde-info', methods=['GET'])
+def retrograde_info():
+    """获取行星逆行信息"""
+    try:
+        sign = request.args.get('sign', '').lower()
+        if not sign or sign not in SIGNS:
+            return jsonify({
+                'success': False,
+                'error': f'请提供有效的星座参数: {", ".join(SIGNS)}'
+            }), 400
+
+        retrograde_data = {
+            'mercury': {'status': '逆行中', 'affected_areas': ['沟通', '交通', '合同']},
+            'venus': {'status': '顺行', 'affected_areas': ['爱情', '财务', '审美']},
+            'mars': {'status': '顺行', 'affected_areas': ['行动力', '冲突', '欲望']},
+            'jupiter': {'status': '顺行', 'affected_areas': ['扩张', '幸运', '成长']},
+            'saturn': {'status': '逆行中', 'affected_areas': ['限制', '责任', '业力']}
+        }
+
+        return jsonify({
+            'success': True,
+            'sign': sign,
+            'sign_zh': SIGNS_ZH.get(sign, sign),
+            'retrograde_info': retrograde_data,
+            'note': '行星逆行影响参考'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/eclipse-info', methods=['GET'])
+def eclipse_info():
+    """获取日月食信息"""
+    try:
+        sign = request.args.get('sign', '').lower()
+        if not sign or sign not in SIGNS:
+            return jsonify({
+                'success': False,
+                'error': f'请提供有效的星座参数: {", ".join(SIGNS)}'
+            }), 400
+
+        eclipse_data = {
+            'solar_eclipse': {
+                'type': '日食',
+                'affected_houses': [1, 7],
+                'themes': ['新的开始', '身份转变', '重大决定']
+            },
+            'lunar_eclipse': {
+                'type': '月食',
+                'affected_houses': [2, 8],
+                'themes': ['结束与释放', '情感高潮', '资源共享']
+            }
+        }
+
+        return jsonify({
+            'success': True,
+            'sign': sign,
+            'sign_zh': SIGNS_ZH.get(sign, sign),
+            'eclipse_info': eclipse_data,
+            'note': '日月食影响参考'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/comprehensive-fortune', methods=['POST'])
+def comprehensive_fortune():
+    """综合运势分析"""
+    try:
+        data = request.get_json(force=True)
+        if not data:
+            return jsonify({'success': False, 'error': '请求体为空'}), 400
+
+        sign = data.get('sign', '').lower()
+        if not sign or sign not in SIGNS:
+            return jsonify({
+                'success': False,
+                'error': f'请提供有效的星座参数: {", ".join(SIGNS)}'
+            }), 400
+
+        report = {
+            'success': True,
+            'sign': sign,
+            'sign_zh': SIGNS_ZH.get(sign, sign),
+            'sections': {
+                'love': {
+                    'title': '爱情运势',
+                    'score': 85,
+                    'summary': '感情生活充满浪漫与激情',
+                    'details': ['单身者有机会遇到心仪对象', '恋爱中的人感情升温', '适合表白或求婚']
+                },
+                'career': {
+                    'title': '事业运势',
+                    'score': 78,
+                    'summary': '职场发展稳步前进',
+                    'details': ['新项目获得认可', '与同事合作顺畅', '有机会获得晋升']
+                },
+                'wealth': {
+                    'title': '财富运势',
+                    'score': 72,
+                    'summary': '财务状况趋于稳定',
+                    'details': ['投资收益可观', '注意控制开支', '适合长期理财规划']
+                },
+                'health': {
+                    'title': '健康运势',
+                    'score': 80,
+                    'summary': '整体健康状况良好',
+                    'details': ['保持规律作息', '适当运动锻炼', '注意心理健康']
+                }
+            },
+            'retrograde_alert': {
+                'active': True,
+                'affected_planets': ['mercury'],
+                'advice': '水星逆行期间，注意沟通细节，避免签署重要合同'
+            },
+            'lucky_elements': {
+                'color': '金色',
+                'number': 7,
+                'direction': '东南'
+            }
+        }
+
+        return jsonify(report)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # Vercel 需要这个
 app = app
