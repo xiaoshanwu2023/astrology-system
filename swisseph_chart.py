@@ -1,6 +1,6 @@
 import math
 import swisseph as swe
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Tuple
 
 # 星座数据
@@ -103,12 +103,16 @@ def calculate_natal_chart_swisseph(birth_dt: datetime, lon: float = 116.4,
     for name, pid in PLANET_IDS.items():
         res = swe.calc(jd, pid)
         longitude = res[0][0]
+        # 黄经速度（°/天），小于 0 表示逆行；太阳月亮永不逆行
+        speed = res[0][3]
         sign, degree = longitude_to_sign(longitude)
         planets[name] = {
             'sign': sign,
             'degree': degree,
             'longitude': round(longitude, 2),
-            'house': 0
+            'house': 0,
+            'speed': round(speed, 4),
+            'is_retrograde': bool(speed < 0) if name not in ('sun', 'moon') else False
         }
 
     # 宫位（Placidus 系统）
@@ -167,12 +171,16 @@ def calculate_transit_chart_swisseph(transit_dt: datetime, natal_chart: Dict,
     for name, pid in PLANET_IDS.items():
         res = swe.calc(jd, pid)
         longitude = res[0][0]
+        # 黄经速度（°/天），小于 0 表示逆行；太阳月亮永不逆行
+        speed = res[0][3]
         sign, degree = longitude_to_sign(longitude)
         transit[name] = {
             'sign': sign,
             'degree': degree,
             'longitude': round(longitude, 2),
-            'house': 0
+            'house': 0,
+            'speed': round(speed, 4),
+            'is_retrograde': bool(speed < 0) if name not in ('sun', 'moon') else False
         }
 
     # 行运行星所在宫位（使用本命盘宫位系统）
