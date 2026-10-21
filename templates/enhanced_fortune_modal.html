@@ -1,7 +1,9 @@
-<!-- 
-  增强版详细运势解读模态框组件
-  支持行星逆行、日月食显示
+<!--
+  珊姐运势解读模态框组件（服务端渲染版）
+  数据源：compute_all 构建的 data['fortune_detail']（六个板块，本地知识库驱动）
+  JS（enhanced_fortune_modal.js）只负责开/关，不再请求后端接口
 -->
+{% set fd = data.get('fortune_detail', {}) %}
 
 <!-- 运势解读模态框 -->
 <div id="enhancedFortuneModal" class="fortune-modal">
@@ -11,61 +13,73 @@
     <button class="fortune-modal-close" aria-label="关闭">
       <span>×</span>
     </button>
-    
+
     <!-- 头部 -->
     <div class="fortune-modal-header">
       <div class="fortune-icon">🌟</div>
       <h2 class="fortune-title">详细运势解读</h2>
-      <div class="fortune-subtitle" id="fortuneSubtitle">正在连接宇宙能量...</div>
+      <div class="fortune-subtitle" id="fortuneSubtitle">基于你的本命盘与 {{ fd.get('transit_date', '') }} 行运天象</div>
     </div>
-    
-    <!-- 加载状态 -->
-    <div id="fortuneLoading" class="fortune-loading">
-      <div class="cosmic-spinner">
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-      </div>
-      <p class="loading-text">正在解读星象...</p>
-      <p class="loading-subtext">Susan Miller为您揭示宇宙讯息</p>
-    </div>
-    
-    <!-- 内容区域 -->
-    <div id="fortuneContent" class="fortune-content" style="display: none;">
+
+    <!-- 内容区域（服务端渲染，打开即见） -->
+    <div id="fortuneContent" class="fortune-content">
       <!-- 运势头部信息 -->
       <div class="fortune-header-info">
         <div class="sign-badge" id="fortuneSignBadge">
-          <span class="sign-icon">♈</span>
-          <span class="sign-name" id="fortuneSignName">白羊座</span>
+          <span class="sign-icon">☀️</span>
+          <span class="sign-name" id="fortuneSignName">太阳 {{ fd.get('sun_sign_zh', '') }}</span>
+        </div>
+        <div class="sign-badge">
+          <span class="sign-icon">⬆️</span>
+          <span class="sign-name">上升 {{ fd.get('asc_sign_zh', '') }}</span>
         </div>
         <div class="date-badge" id="fortuneDateBadge">
           <span class="date-label">行运日期</span>
-          <span class="date-value" id="fortuneDate">--</span>
-        </div>
-        <div class="sentiment-badge" id="fortuneSentiment">
-          <span class="sentiment-label">整体运势</span>
-          <span class="sentiment-value sentiment-positive">非常积极</span>
+          <span class="date-value" id="fortuneDate">{{ fd.get('transit_date', '--') }}</span>
         </div>
       </div>
-      
-      <!-- 运势正文 -->
+
+      <!-- 六个板块：日月食 / 新月满月 / 逆行 / ×太阳 / ×上升 / 其他行星 -->
       <div class="fortune-reading-text" id="fortuneReadingText">
-        <!-- 动态插入解读内容 -->
+        {% for sec in fd.get('sections', []) %}
+        {% if sec['items'] or not sec.get('hide_if_empty') %}
+        <div class="reading-section">
+          <h3 class="section-title">{{ sec['title'] }}</h3>
+          {% if sec['items'] %}
+            {% for item in sec['items'] %}
+            <div class="detail-card">
+              <div class="detail-header">
+                <span class="detail-title">{{ item['headline'] }}</span>
+              </div>
+              {% if item.get('meta') %}
+              <div class="detail-meta" style="margin-bottom: 8px;">
+                {% for m in item['meta'] %}
+                <div>· {{ m }}</div>
+                {% endfor %}
+              </div>
+              {% endif %}
+              {% if item.get('readings') %}
+                {% for r in item['readings'] %}
+                <p class="detail-content">📖 {{ r }}</p>
+                {% endfor %}
+              {% elif item.get('generic') %}
+                <p class="detail-content">{{ item['generic'] }}</p>
+              {% endif %}
+            </div>
+            {% endfor %}
+          {% else %}
+          <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">{{ sec.get('empty_text', '本月无此类星象') }}</p>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
       </div>
-      
+
       <!-- 底部信息 -->
       <div class="fortune-footer">
-        <p class="fortune-source">💫 解读风格：Susan Miller温暖鼓励式占星</p>
+        <p class="fortune-source">💫 解读风格：珊姐温暖鼓励式占星</p>
         <p class="fortune-disclaimer">*运势解读仅供参考，请理性看待</p>
       </div>
-    </div>
-    
-    <!-- 错误状态 -->
-    <div id="fortuneError" class="fortune-error" style="display: none;">
-      <div class="error-icon">⚠️</div>
-      <h3>获取运势解读失败</h3>
-      <p id="errorMessage">请稍后重试</p>
-      <button class="btn-retry" id="retryBtn">重新尝试</button>
     </div>
   </div>
 </div>

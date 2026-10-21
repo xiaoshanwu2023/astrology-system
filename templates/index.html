@@ -511,6 +511,26 @@
     </div>
   </div>
 
+  <!-- 备案信息页脚 -->
+  <div class="beian-footer" style="text-align: center; font-size: 12px; color: #94a3b8; padding: 20px; line-height: 1.9;">
+    <div>
+      <a href="https://beian.miit.gov.cn/" target="_blank"
+         style="color: #94a3b8; text-decoration: none; transition: color 0.3s ease;"
+         onmouseover="this.style.color='#cbd5e1'" onmouseout="this.style.color='#94a3b8'">闽ICP备2026021003号</a>
+    </div>
+    <div>
+      <a href="https://beian.mps.gov.cn/#/query/webSearch?code=35040002000270" rel="noreferrer" target="_blank"
+         style="color: #94a3b8; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: color 0.3s ease;"
+         onmouseover="this.style.color='#cbd5e1'" onmouseout="this.style.color='#94a3b8'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 2L4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z" stroke="currentColor" stroke-width="1.5" fill="rgba(148,163,184,0.15)"/>
+          <path d="M8.5 12l2.5 2.5 4.5-4.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        闽公网安备35040002000270号
+      </a>
+    </div>
+  </div>
+
   <!-- 城市数据 -->
   <script src="{{ url_for('static', filename='js/city-data.js') }}"></script>
   
@@ -789,10 +809,13 @@
       const birthMinute = document.getElementById('birthMinute').value;
       const unknownMinute = document.getElementById('unknownMinute').checked;
       const timezone = document.getElementById('timezone').value;
-      const province = document.getElementById('province').value;
-      const city = document.getElementById('city').value;
+      // 省/市中文名取 option 显示文本（city 下拉框的 value 是坐标串，不能直接当地名用）
+      const provinceName = provinceSelect.selectedIndex >= 0
+        ? provinceSelect.options[provinceSelect.selectedIndex].textContent.trim() : '';
+      const cityName = citySelect.selectedIndex >= 0
+        ? citySelect.options[citySelect.selectedIndex].textContent.trim() : '';
       const coordinates = citySelect.value;
-      const location = province && city ? `${province} ${city}` : '';
+      const location = provinceName && cityName ? `${provinceName} ${cityName}` : '';
       
       // 获取行运日期时间
       const useCurrentTime = document.getElementById('useCurrentTime').checked;
@@ -865,6 +888,8 @@
             birthTime: birthTime,
             timezone: timezone,
             coordinates: `${lon},${lat}`,
+            province: provinceName,
+            cityName: cityName,
             location: location,
             transitDate: transitDate,
             transitTime: transitTime

@@ -57,8 +57,10 @@ def calculate_route():
                 return jsonify({'success': False, 'error': f'缺少必填字段: {field}'}), 400
 
         result = compute_all(data)
-        # 解读文案体积大，session 只存核心结果，渲染时再重算（见 chart_core）
-        session['result'] = slim_for_session(result)
+        # session（cookie）上限约4KB，完整结果远超此限。
+        # 只存表单输入（几百字节），/result 渲染时全量重算（确定性计算，毫秒级）。
+        session['calc_input'] = data
+        session.pop('result', None)  # 清掉旧版残留的大对象
         logger.info("Calculation completed successfully")
         return jsonify({'success': True, 'redirect_url': url_for('result_page')})
     except ValueError as e:
@@ -72,19 +74,29 @@ def calculate_route():
 @app.route('/result')
 def result_page():
     try:
-        result = session.get('result')
+        result = None
+        # 新方式：session 只存表单输入，此处全量重算（含相位/解读/天象）
+        calc_input = session.get('calc_input')
+        if isinstance(calc_input, dict) and calc_input.get('birthDate'):
+            try:
+                result = compute_all(calc_input)
+            except Exception as e:
+                logger.exception(f"Recompute from calc_input failed: {e}")
+                result = None
+        # 兼容旧 session（存的是瘦身后的完整结果）
+        if result is None:
+            legacy = session.get('result')
+            if legacy:
+                if not isinstance(legacy, dict):
+                    logger.error(f"Invalid result format: {type(legacy)}")
+                    return redirect(url_for('index'))
+                result = attach_readings(legacy)
         if not result:
             logger.warning("No result found in session, redirecting to index")
             return redirect(url_for('index'))
 
-        # 确保数据格式正确
-        if not isinstance(result, dict):
-            logger.error(f"Invalid result format: {type(result)}")
-            return redirect(url_for('index'))
-
         logger.info("Rendering result page")
-        # session 中未存解读文案，渲染前重算挂载（旧 session 数据也兼容）
-        return render_template('result.html', data=attach_readings(result))
+        return render_template('result.html', data=result)
     except Exception as e:
         logger.exception("Error rendering result page")
         return render_template('error.html', error_message='显示结果时出错，请重试'), 500
