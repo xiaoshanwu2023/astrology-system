@@ -165,12 +165,21 @@ def localize_meaning_dates(text, event_date=None, period=None, transit_date=None
         out = pat.sub(rep, out)
 
     # 4. 日期区间（先于单日期，否则区间两端会被拆开替换）
-    out = _RANGE_RE.sub(range_text, out)
+    # 替换结果用占位符保护，避免第 5 步的单日期规则二次破坏 period 中的日期
+    stashed_ranges = []
+
+    def _stash_range(m):
+        stashed_ranges.append(range_text)
+        return f'\x01{len(stashed_ranges) - 1}\x01'
+
+    out = _RANGE_RE.sub(_stash_range, out)
 
     # 5. 单日期
     out = _SINGLE_DATE_RE.sub(single_text, out)
 
-    # 6. 还原带年份日期
+    # 6. 还原因子：先区间后带年份日期
+    for i, rep in enumerate(stashed_ranges):
+        out = out.replace(f'\x01{i}\x01', rep)
     for i, orig in enumerate(protected):
         out = out.replace(f'\x00{i}\x00', orig)
     return out

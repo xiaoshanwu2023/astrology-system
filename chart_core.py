@@ -573,7 +573,7 @@ def _build_retrograde_section(month_events, result, sun_sign_zh, asc_sign_zh,
                        + (f"、上升星座的{_house_theme_text(solar_house_asc)}" if solar_house_asc else '')
                        + "。逆行期间相关领域宜回顾复盘、修正旧有问题，不宜贸然开启新局。")
 
-            meta = [f"逆行时间：{r.get('start_date', '')} ~ {r.get('end_date', '')}"
+            meta = [f"逆行时间：{_period_text(r.get('start_date'), r.get('end_date')) or (r.get('start_date', '') + ' ~ ' + r.get('end_date', ''))}"
                     + (f"（{r['note']}）" if r.get('note') else ''),
                     f"所在星座：{sign_zh}"]
             meta += aspect_hits

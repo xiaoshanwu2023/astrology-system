@@ -585,12 +585,12 @@
           <div class="event-item">
             <div class="event-header">
               <span class="event-icon">🪐</span>
-              <span class="event-title">{{ r['planet_zh'] }}逆行于{{ r['sign_zh'] }}</span>
+              <span class="event-title">{{ r['planet_zh'] }}逆行：{{ r.get('start_md', r['start_date']) }} ~ {{ r.get('end_md', r['end_date']) }}（{{ r['sign_zh'] }}）</span>
               <span class="event-badge retrograde">逆行</span>
             </div>
             <div class="event-details">
               <div class="event-detail">
-                <strong>📅 逆行期</strong>
+                <strong>📅 完整逆行期</strong>
                 {{ r['start_date'] }} ~ {{ r['end_date'] }}
               </div>
               <div class="event-detail">
@@ -599,7 +599,7 @@
               </div>
               {% if r.get('note') %}
               <div class="event-detail">
-                <strong>📌 说明</strong>
+                <strong>📌 本月所处阶段</strong>
                 {{ r['note'] }}
               </div>
               {% endif %}

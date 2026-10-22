@@ -150,14 +150,45 @@ def _scan_planet_retrogrades(year, month, pid):
     return clipped
 
 
+# 完整逆行期扩展扫描的窗口上限（外行星逆行期最长约 5 个多月，±200 天足够）
+RETRO_EXTEND_MAX_DAYS = 200
+
+
+def _extend_to_full_retrograde(jd_inside, pid, max_days=RETRO_EXTEND_MAX_DAYS):
+    """从逆行中的某点向前后扩展（日步长 + 停滞点二分），求完整逆行期
+
+    返回 (start_jd, end_jd)：顺转逆 / 逆转顺两个停滞点；
+    到达扫描上限仍未见停滞点时以扫描边界为准（实际不会发生）。
+    """
+    # 向过去找 顺->逆 停滞点
+    t = jd_inside
+    steps = 0
+    while steps < max_days and _speed_sign(t, pid) < 0:
+        t -= 1.0
+        steps += 1
+    start = t
+    if 0 < steps < max_days:
+        start = _bisect_station(t, t + 1.0, pid)  # t 顺行，t+1 逆行
+    # 向未来找 逆->顺 停滞点
+    t = jd_inside
+    steps = 0
+    while steps < max_days and _speed_sign(t, pid) < 0:
+        t += 1.0
+        steps += 1
+    end = t
+    if 0 < steps < max_days:
+        end = _bisect_station(t - 1.0, t, pid)  # t-1 逆行，t 顺行
+    return start, end
+
+
 def get_month_retrogrades(year, month):
     """当月有逆行发生的行星列表
 
-    返回 [{planet_zh, sign_zh, start_date, end_date, note}]
-    sign 取逆行区间中点的黄经所在星座
+    返回 [{planet_zh, sign_zh, start_date, end_date, start_md, end_md, note}]
+    start_date/end_date 为完整逆行期起止（北京时间，不裁切到当月）；
+    sign 取完整逆行期中点的黄经所在星座；note 表明逆行期与当月的关系
     """
     start_jd, end_jd = _month_bounds_jd(year, month)
-    month_days = (end_jd - start_jd)
     out = []
     for key, pid, name_zh in RETRO_PLANETS:
         try:
@@ -165,30 +196,43 @@ def get_month_retrogrades(year, month):
         except Exception as e:
             logger.warning(f"{name_zh}逆行扫描失败: {e}")
             continue
+        seen = set()
         for a, b in (intervals or []):
-            # 区间中点的星座
-            mid = (a + b) / 2.0
-            r = _planet_calc(mid, pid)
-            sign_zh = ''
-            if r is not None:
-                sign_zh = _sign_degree(r[0])[0]
-            # 备注：整月逆行 / 本月开始逆行 / 本月恢复顺行
-            if (b - a) >= month_days - 0.02:
-                note = '整月逆行'
-            elif a > start_jd + 0.01 and b >= end_jd - 0.01:
-                note = '本月开始逆行'
-            elif a <= start_jd + 0.01 and b < end_jd - 0.01:
-                note = '本月恢复顺行'
-            else:
+            try:
+                # 从当月逆行区间中点扩展出完整逆行期
+                full_start, full_end = _extend_to_full_retrograde((a + b) / 2.0, pid)
+            except Exception as e:
+                logger.warning(f"{name_zh}完整逆行期扩展失败: {e}")
+                continue
+            # 同一逆行期被当月多个碎片检出时去重
+            dedup_key = (round(full_start, 2), round(full_end, 2))
+            if dedup_key in seen:
+                continue
+            seen.add(dedup_key)
+            # 完整期区间中点的星座
+            r = _planet_calc((full_start + full_end) / 2.0, pid)
+            sign_zh = _sign_degree(r[0])[0] if r is not None else ''
+            # 备注：完整逆行期与当月的关系
+            starts_in = full_start >= start_jd - 0.01
+            ends_in = full_end <= end_jd + 0.01
+            if starts_in and ends_in:
                 note = '本月逆行'
-            # 区间被裁切在月末时，结束日期回退 1 分钟显示为当月最后一天
-            end_disp = b - (1.0 / 1440.0) if b >= end_jd - 0.001 else b
+            elif starts_in:
+                note = '本月开始逆行'
+            elif ends_in:
+                note = '本月结束逆行'
+            else:
+                note = '整月逆行'
+            start_date = _fmt_date_bj(full_start)
+            end_date = _fmt_date_bj(full_end)
             out.append({
                 'planet': key,
                 'planet_zh': name_zh,
                 'sign_zh': sign_zh,
-                'start_date': _fmt_date_bj(a),
-                'end_date': _fmt_date_bj(end_disp),
+                'start_date': start_date,
+                'end_date': end_date,
+                'start_md': f'{int(start_date[5:7])}月{int(start_date[8:10])}日',
+                'end_md': f'{int(end_date[5:7])}月{int(end_date[8:10])}日',
                 'note': note
             })
     return out
