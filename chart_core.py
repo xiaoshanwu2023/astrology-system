@@ -378,6 +378,40 @@ def _house_theme_text(house):
     return f"第{house}宫（{theme}）" if theme else f"第{house}宫"
 
 
+def _parse_event_dt(dt_str):
+    """'YYYY-MM-DD HH:MM' / 'YYYY-MM-DD' -> datetime；失败返回 None"""
+    if not dt_str:
+        return None
+    for fmt in ('%Y-%m-%d %H:%M', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(dt_str, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _period_text(start_date, end_date):
+    """逆行区间日期串 -> '8月5日到29日'（跨月 '10月4日到11月28日'；同一天 '6月30日'）"""
+    d1, d2 = _parse_event_dt(start_date), _parse_event_dt(end_date)
+    if not d1 or not d2:
+        return None
+    if (d1.year, d1.month, d1.day) == (d2.year, d2.month, d2.day):
+        return f'{d1.month}月{d1.day}日'
+    if (d1.year, d1.month) == (d2.year, d2.month):
+        return f'{d1.month}月{d1.day}日到{d2.day}日'
+    return f'{d1.month}月{d1.day}日到{d2.month}月{d2.day}日'
+
+
+def _parse_transit_dt_core(result):
+    """从 result 的 transit_date/transit_time 解析行运时刻（北京时间）"""
+    try:
+        d = result.get('transit_date', '')
+        t = result.get('transit_time', '12:00') or '12:00'
+        return datetime.strptime(f'{d} {t}', '%Y-%m-%d %H:%M')
+    except (ValueError, TypeError):
+        return None
+
+
 def _event_fallback(event_planet_zh, solar_house):
     """事件无知识库命中时的通用兜底句（即使无相位也必须输出宫位/星座影响）"""
     house_text = _house_theme_text(solar_house)
@@ -396,9 +430,13 @@ def _event_fallback(event_planet_zh, solar_house):
     return ''
 
 
-def _aspect_event_item(event, event_planet_zh, natal, sun_sign_zh, asc_sign_zh):
-    """组装一条日月食/新月满月条目：时间、星座宫位、与本命太阳/上升的相位、解读"""
-    from astro_interpreter import _solar_house
+def _aspect_event_item(event, event_planet_zh, natal, sun_sign_zh, asc_sign_zh,
+                       transit_dt=None):
+    """组装一条日月食/新月满月条目：时间、星座宫位、与本命太阳/上升的相位、解读
+
+    KB 解读走 embed 模式：原文日期替换为事件真实发生时刻（month_events 提供）
+    """
+    from astro_interpreter import _solar_house, localize_meaning_dates
     sign_zh = event.get('sign_zh', '')
     solar_house_sun = _solar_house(sign_zh, sun_sign_zh)
     solar_house_asc = _solar_house(sign_zh, asc_sign_zh)
@@ -422,6 +460,10 @@ def _aspect_event_item(event, event_planet_zh, natal, sun_sign_zh, asc_sign_zh):
     # 去重保序
     seen = set()
     readings = [r for r in readings if not (r in seen or seen.add(r))][:3]
+    # 日期本地化：event_date=事件发生时刻
+    ev_dt = _parse_event_dt(event.get('datetime'))
+    readings = [localize_meaning_dates(m, event_date=ev_dt, transit_date=transit_dt)
+                for m in readings]
 
     meta = [f"北京时间 {event.get('datetime', '')}"]
     if solar_house_sun:
@@ -438,20 +480,21 @@ def _aspect_event_item(event, event_planet_zh, natal, sun_sign_zh, asc_sign_zh):
     }
 
 
-def _build_eclipse_section(month_events, natal, sun_sign_zh, asc_sign_zh):
+def _build_eclipse_section(month_events, natal, sun_sign_zh, asc_sign_zh, transit_dt=None):
     """板块一：本月日月食（当月无食则整块不显示）"""
     items = []
     for e in month_events.get('eclipses', []):
         try:
             planet_zh = '日食' if '日食' in e.get('type', '') else '月食'
-            items.append(_aspect_event_item(e, planet_zh, natal, sun_sign_zh, asc_sign_zh))
+            items.append(_aspect_event_item(e, planet_zh, natal, sun_sign_zh,
+                                            asc_sign_zh, transit_dt))
         except Exception as ex:
             logger.warning(f"日月食条目构建失败: {ex}")
     return {'key': 'eclipses', 'title': '🌑 本月日月食',
             'hide_if_empty': True, 'items': items, 'empty_text': ''}
 
 
-def _build_moon_section(month_events, natal, sun_sign_zh, asc_sign_zh):
+def _build_moon_section(month_events, natal, sun_sign_zh, asc_sign_zh, transit_dt=None):
     """板块二：本月新月与满月"""
     items = []
     for label, ev_list in (('新月', month_events.get('new_moons', [])),
@@ -460,7 +503,8 @@ def _build_moon_section(month_events, natal, sun_sign_zh, asc_sign_zh):
             try:
                 event = dict(m)
                 event['type'] = label
-                items.append(_aspect_event_item(event, label, natal, sun_sign_zh, asc_sign_zh))
+                items.append(_aspect_event_item(event, label, natal, sun_sign_zh,
+                                                asc_sign_zh, transit_dt))
             except Exception as ex:
                 logger.warning(f"{label}条目构建失败: {ex}")
     items.sort(key=lambda x: x['meta'][0] if x['meta'] else '')
@@ -468,11 +512,22 @@ def _build_moon_section(month_events, natal, sun_sign_zh, asc_sign_zh):
             'hide_if_empty': False, 'items': items, 'empty_text': '本月无此类星象'}
 
 
-def _build_retrograde_section(month_events, result, sun_sign_zh, asc_sign_zh):
-    """板块三：行运逆行行星（复用 month_events.retrogrades）"""
-    from astro_interpreter import _kb_query, _dedup, _solar_house, PLANET_THEMES
+def _build_retrograde_section(month_events, result, sun_sign_zh, asc_sign_zh,
+                              transit_dt=None):
+    """板块三：行运逆行行星（复用 month_events.retrogrades）
+
+    KB 解读走 embed 模式：event_date=逆行开始日，period=真实逆行区间；
+    与本命太阳/上升成相位的条目在相位说明里追加精确成相日。
+    """
+    from astro_interpreter import (_kb_query, _dedup, _solar_house,
+                                   localize_meaning_dates, PLANET_THEMES)
     natal = result.get('natal_chart', {})
     all_aspects = result.get('aspects', [])
+    # readings.sun_asc_aspects 已算好精确成相日，按 (行星, 目标, 相位名) 建索引复用
+    sa_lookup = {}
+    for sa in (result.get('readings') or {}).get('sun_asc_aspects', []):
+        sa_lookup[(sa.get('transit_planet'), sa.get('target'),
+                   sa.get('aspect_name'))] = sa
     items = []
     for r in month_events.get('retrogrades', []):
         try:
@@ -480,14 +535,20 @@ def _build_retrograde_section(month_events, result, sun_sign_zh, asc_sign_zh):
             planet_zh = r.get('planet_zh', '')
             sign_zh = r.get('sign_zh', '')
 
-            # 与本命太阳/上升的相位（从 result['aspects'] 筛）
+            # 与本命太阳/上升的相位（从 result['aspects'] 筛，附精确成相日）
             aspect_hits = []
             for asp in all_aspects:
                 if asp.get('transit_planet') == planet_key and \
                         asp.get('natal_planet') in ('sun', 'ascendant'):
-                    target = '本命太阳' if asp['natal_planet'] == 'sun' else '本命上升'
-                    aspect_hits.append(
-                        f"与{target}呈{asp.get('aspect_name', '')}（偏差{asp.get('deviation', '')}°）")
+                    is_sun = asp['natal_planet'] == 'sun'
+                    target = '本命太阳' if is_sun else '本命上升'
+                    hit = (f"与{target}呈{asp.get('aspect_name', '')}"
+                           f"（偏差{asp.get('deviation', '')}°）")
+                    sa = sa_lookup.get((planet_key, '太阳' if is_sun else '上升',
+                                        asp.get('aspect_name')))
+                    if sa and sa.get('exact_date'):
+                        hit += (f"，精确成相：{'当天' if sa.get('exact_is_today') else sa['exact_date']}")
+                    aspect_hits.append(hit)
 
             # 知识库：retrograde 列非空且 planet/sign 匹配（太阳/上升星座两个参照）
             rows = []
@@ -496,7 +557,12 @@ def _build_retrograde_section(month_events, result, sun_sign_zh, asc_sign_zh):
                     continue
                 rows += [row for row in _kb_query(sign=ref_sign, planet=planet_zh)
                          if row.get('retrograde', '').strip()]
-            readings = [row['meaning'] for row in _dedup(rows)[:2]]
+            # 日期本地化：单日期 -> 逆行开始日，区间 -> 真实逆行区间
+            period = _period_text(r.get('start_date'), r.get('end_date'))
+            ev_dt = _parse_event_dt(r.get('start_date'))
+            readings = [localize_meaning_dates(row['meaning'], event_date=ev_dt,
+                                               period=period, transit_date=transit_dt)
+                        for row in _dedup(rows)[:2]]
 
             # 无相位时的宫位星座影响兜底
             solar_house_sun = _solar_house(sign_zh, sun_sign_zh)
@@ -536,6 +602,10 @@ def _build_sun_asc_section(readings, target, key, title):
                     + f"，偏差{sa.get('deviation', '')}°"]
             if sa.get('is_retrograde'):
                 meta.append('该行运星正在逆行')
+            # 精确成相日（readings.sun_asc_aspects 已算好）
+            if sa.get('exact_date'):
+                meta.append('精确成相：'
+                            + ('当天' if sa.get('exact_is_today') else sa['exact_date']))
             items.append({
                 'headline': f"行运{sa.get('transit_planet_zh', '')} × 本命{target} · {sa.get('aspect_name', '')}",
                 'meta': meta,
@@ -622,11 +692,13 @@ def _build_fortune_detail(result):
 
     month_events = result.get('month_events') or _empty_month_events()
     readings = result.get('readings') or {}
+    # 行运时刻：模态框板块 1/2/3 日期本地化的参照
+    transit_dt = _parse_transit_dt_core(result)
 
     builders = [
-        lambda: _build_eclipse_section(month_events, natal, sun_sign_zh, asc_sign_zh),
-        lambda: _build_moon_section(month_events, natal, sun_sign_zh, asc_sign_zh),
-        lambda: _build_retrograde_section(month_events, result, sun_sign_zh, asc_sign_zh),
+        lambda: _build_eclipse_section(month_events, natal, sun_sign_zh, asc_sign_zh, transit_dt),
+        lambda: _build_moon_section(month_events, natal, sun_sign_zh, asc_sign_zh, transit_dt),
+        lambda: _build_retrograde_section(month_events, result, sun_sign_zh, asc_sign_zh, transit_dt),
         lambda: _build_sun_asc_section(readings, '太阳', 'sun_aspects', '☀️ 行运行星 × 本命太阳'),
         lambda: _build_sun_asc_section(readings, '上升', 'asc_aspects', '⬆️ 行运行星 × 本命上升'),
         lambda: _build_other_planets_section(readings),

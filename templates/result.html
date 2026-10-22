@@ -388,6 +388,9 @@
             <span style="font-size: 0.8rem; color: #888;">({{ '%.1f'|format(asp['actual_degree']) }}°)</span>
             <span class="label-transit">行运</span>
             <span>{{ asp['planet_b_zh'] }}(<span style="color: #e2e8f0;">{{ asp['sign_b_zh'] }}</span>){% if asp.get('retro_b') %}<span style="color: #ff6b6b; font-size: 0.8rem;"> 🔁</span>{% endif %}</span>
+            {% if asp.get('exact_date') %}
+            <span style="font-size: 0.8rem; color: #2ecc71;">· 精确成相：{{ '当天' if asp.get('exact_is_today') else asp['exact_date'] }}</span>
+            {% endif %}
           </div>
           <div class="aspect-desc" style="margin-top: 8px;">
             {{ asp['planet_a_zh'] }}落第{{ asp['house_a'] }}宫，{{ asp['planet_b_zh'] }}落第{{ asp['house_b'] }}宫，两星呈<span style="color: #ffd700;">{{ asp['aspect_name'] }}</span>，偏差{{ asp['deviation'] }}°
@@ -424,6 +427,12 @@
       {% if asc_aspects %}
       <div class="aspect-grid">
         {% for asp in asc_aspects %}
+        {# 知识库解读：匹配本命上升 × 该行运行星的同类型相位（提前取好供标题行使用） #}
+        {% set asc_reading = (data.get('readings', {}).get('sun_asc_aspects', [])
+              | selectattr('target', 'equalto', '上升')
+              | selectattr('transit_planet_zh', 'equalto', asp['transit_planet_zh'])
+              | selectattr('aspect_name', 'equalto', asp['aspect_name'])
+              | list) %}
         <div class="aspect-item" style="border-left: 3px solid {% if asp['aspect_degree'] == 0 %}#ffd700{% elif asp['aspect_degree'] == 60 %}#4caf50{% elif asp['aspect_degree'] == 90 %}#f44336{% elif asp['aspect_degree'] == 120 %}#2196f3{% elif asp['aspect_degree'] == 180 %}#9c27b0{% else %}#757575{% endif %};">
           <div class="aspect-title" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
             <span class="label-natal">本命</span>
@@ -432,6 +441,9 @@
             <span class="label-transit">行运</span>
             <span>{{ asp['transit_planet_zh'] }}</span>
             <span style="font-size: 0.8rem; color: #888; margin-left: 8px;">({{ asp['deviation'] }}°)</span>
+            {% if asc_reading and asc_reading[0].get('exact_date') %}
+            <span style="font-size: 0.8rem; color: #2ecc71;">· 精确成相：{{ '当天' if asc_reading[0].get('exact_is_today') else asc_reading[0]['exact_date'] }}</span>
+            {% endif %}
           </div>
           <div class="aspect-desc" style="margin-top: 8px;">
             <span class="label-natal">本命</span>上升星座(<span style="color: #e2e8f0;">{{ asp['natal_sign_zh'] }}</span>)
@@ -449,12 +461,6 @@
               - 对立相位，需要在自我与他人间平衡
             {% endif %}
           </div>
-          {# 知识库解读：匹配本命上升 × 该行运行星的同类型相位 #}
-          {% set asc_reading = (data.get('readings', {}).get('sun_asc_aspects', [])
-                | selectattr('target', 'equalto', '上升')
-                | selectattr('transit_planet_zh', 'equalto', asp['transit_planet_zh'])
-                | selectattr('aspect_name', 'equalto', asp['aspect_name'])
-                | list) %}
           {% if asc_reading %}
           {% set ar = asc_reading[0] %}
           <div style="margin-top: 8px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 2px solid #ffd700; font-size: 0.85rem; color: rgba(255,255,255,0.75); line-height: 1.6;">
@@ -498,6 +504,9 @@
             <span class="label-transit">行运</span>
             <span>{{ sr['transit_planet_zh'] }}(<span style="color: #e2e8f0;">{{ sr['transit_sign_zh'] }}</span>)</span>
             {% if sr.get('is_retrograde') %}<span style="color: #ff6b6b; font-size: 0.8rem;">🔁 逆行</span>{% endif %}
+            {% if sr.get('exact_date') %}
+            <span style="font-size: 0.8rem; color: #2ecc71;">· 精确成相：{{ '当天' if sr.get('exact_is_today') else sr['exact_date'] }}</span>
+            {% endif %}
           </div>
           <div class="aspect-desc" style="margin-top: 8px;">
             行运{{ sr['transit_planet_zh'] }}落入你本命第{{ sr['transit_house'] }}宫，与本命太阳呈<span style="color: #ffd700;">{{ sr['aspect_name'] }}</span>
